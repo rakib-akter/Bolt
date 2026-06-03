@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from trading_bot.broker.paper_broker import PaperBroker
 from trading_bot.config import load_settings
 from trading_bot.data.market_data import Candle, MarketDataStore
+from trading_bot.database.db import TradeRepository
 from trading_bot.execution.order_manager import ExecutionRequest, OrderManager
 from trading_bot.portfolio.portfolio_manager import PortfolioManager
 from trading_bot.risk.risk_manager import RiskManager
@@ -22,6 +23,7 @@ risk_manager = RiskManager(
 )
 order_manager = OrderManager(broker)
 portfolio_manager = PortfolioManager(broker)
+trade_repository = TradeRepository()
 
 app = FastAPI(title=settings.app_name)
 
@@ -88,6 +90,11 @@ def portfolio() -> dict[str, object]:
     return asdict(portfolio_manager.snapshot())
 
 
+@app.get("/trades")
+def trades() -> list[dict[str, object]]:
+    return [asdict(trade) for trade in trade_repository.list_trades()]
+
+
 @app.post("/run-once")
 def run_once(request: RunRequest) -> dict[str, object]:
     symbol = request.symbol.upper()
@@ -114,10 +121,11 @@ def run_once(request: RunRequest) -> dict[str, object]:
     result = order_manager.execute_signal(
         ExecutionRequest(symbol=symbol, signal=signal, quantity=decision.quantity)
     )
+    if result is not None:
+        trade_repository.save_order_result(result)
     return {
         "symbol": symbol,
         "signal": signal,
         "risk": asdict(decision),
         "order": asdict(result) if result is not None else None,
     }
-
