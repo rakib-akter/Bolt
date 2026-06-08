@@ -17,6 +17,8 @@ const fields = {
   lastAction: document.querySelector("#lastAction"),
   positionsTable: document.querySelector("#positionsTable"),
   tradesTable: document.querySelector("#tradesTable"),
+  sellSignalsTable: document.querySelector("#sellSignalsTable"),
+  sellSummary: document.querySelector("#sellSummary"),
   priceChart: document.querySelector("#priceChart"),
   chartEmpty: document.querySelector("#chartEmpty"),
   chartSummary: document.querySelector("#chartSummary"),
@@ -101,6 +103,33 @@ function renderTrades(trades) {
         </tr>
       `,
     )
+    .join("");
+}
+
+function renderSellDecisions(decisions) {
+  if (!decisions.length) {
+    fields.sellSignalsTable.innerHTML = '<tr><td colspan="6">No open positions to evaluate.</td></tr>';
+    fields.sellSummary.textContent = "No recommendations";
+    return;
+  }
+
+  const sellCount = decisions.filter((decision) => decision.action === "SELL").length;
+  fields.sellSummary.textContent = sellCount ? `${sellCount} sell signal(s)` : "All holds";
+  fields.sellSignalsTable.innerHTML = decisions
+    .map((decision) => {
+      const actionClass = decision.action === "SELL" ? "negative" : "positive";
+      const plClass = decision.unrealized_pl_percent >= 0 ? "positive" : "negative";
+      return `
+        <tr>
+          <td>${decision.symbol}</td>
+          <td class="${actionClass}">${decision.action}</td>
+          <td>${Number(decision.quantity).toFixed(2)}</td>
+          <td>${money(decision.current_price)}</td>
+          <td class="${plClass}">${(Number(decision.unrealized_pl_percent) * 100).toFixed(2)}%</td>
+          <td>${decision.reason}</td>
+        </tr>
+      `;
+    })
     .join("");
 }
 
@@ -195,10 +224,11 @@ async function addDemoCandles(symbol) {
 }
 
 async function refreshDashboard() {
-  const [status, portfolio, trades] = await Promise.all([
+  const [status, portfolio, trades, sellDecisions] = await Promise.all([
     request("/status"),
     request("/portfolio"),
     request("/trades"),
+    request("/sell-decisions"),
   ]);
 
   fields.environment.textContent = `Environment: ${status.environment}`;
@@ -215,9 +245,10 @@ async function refreshDashboard() {
 
   renderPositions(portfolio.positions);
   renderTrades(trades);
+  renderSellDecisions(sellDecisions);
   await loadChart(activeChartSymbol);
   setConnection("ok", "Connected");
-  showActivity("Dashboard refreshed", { status, portfolio, trades });
+  showActivity("Dashboard refreshed", { status, portfolio, trades, sellDecisions });
 }
 
 document.querySelector("#refreshButton").addEventListener("click", () => {
