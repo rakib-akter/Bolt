@@ -15,6 +15,7 @@ from trading_bot.execution.paper_trading import PaperTradingEngine
 from trading_bot.portfolio.portfolio_manager import PortfolioManager
 from trading_bot.risk.risk_manager import RiskManager
 from trading_bot.strategy.moving_average_strategy import MovingAverageStrategy
+from trading_bot.strategy.sell_decision import SellDecisionEngine
 from trading_bot.utils.logger import get_logger
 
 settings = load_settings()
@@ -37,6 +38,7 @@ def create_broker() -> BaseBroker:
 broker = create_broker()
 market_data = MarketDataStore()
 strategy = MovingAverageStrategy()
+sell_decision_engine = SellDecisionEngine()
 risk_manager = RiskManager(
     max_risk_per_trade=settings.max_risk_per_trade,
     max_position_value=settings.max_position_value,
@@ -135,6 +137,19 @@ def portfolio() -> dict[str, object]:
 @app.get("/trades")
 def trades() -> list[dict[str, object]]:
     return [asdict(trade) for trade in trade_repository.list_trades()]
+
+
+@app.get("/sell-decisions")
+def sell_decisions() -> list[dict[str, object]]:
+    decisions = []
+    for position in broker.get_positions():
+        symbol = position.symbol
+        candles_for_symbol = market_data.candles_for(symbol)
+        signal = strategy.generate_signal(candles_for_symbol)
+        current_price = broker.get_price(symbol)
+        decision = sell_decision_engine.evaluate(position, current_price, signal)
+        decisions.append(asdict(decision))
+    return decisions
 
 
 @app.post("/run-once")
