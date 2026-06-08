@@ -29,6 +29,19 @@ class PaperTradingEngine:
         if signal == "HOLD":
             return PaperTradeResult(signal=signal, risk=None, order=None)
 
+        if signal == "SELL":
+            positions = {
+                position.symbol: position for position in self.broker.get_positions()
+            }
+            position = positions.get(symbol.upper())
+            if position is None:
+                return PaperTradeResult(signal=signal, risk=None, order=None)
+            quantity = requested_quantity or position.quantity
+            order = self.order_manager.execute_signal(
+                ExecutionRequest(symbol=symbol, signal=signal, quantity=quantity)
+            )
+            return PaperTradeResult(signal=signal, risk=None, order=order)
+
         price = self.broker.get_price(symbol)
         decision = self.risk_manager.approve_trade(
             balance=self.broker.get_balance(),
@@ -43,4 +56,3 @@ class PaperTradingEngine:
             ExecutionRequest(symbol=symbol, signal=signal, quantity=decision.quantity)
         )
         return PaperTradeResult(signal=signal, risk=decision, order=order)
-

@@ -31,3 +31,15 @@ def test_order_manager_ignores_hold_signal() -> None:
 
     assert manager.execute_signal(ExecutionRequest("AAPL", "HOLD", 1)) is None
 
+
+def test_order_manager_executes_sell_signal_after_buy() -> None:
+    broker = PaperBroker(cash=1000, prices={"AAPL": 100})
+    manager = OrderManager(broker)
+
+    manager.execute_signal(ExecutionRequest("AAPL", "BUY", 2))
+    result = manager.execute_signal(ExecutionRequest("AAPL", "SELL", 2))
+
+    assert result is not None
+    assert result.status == "filled"
+    assert broker.get_positions() == []
+
