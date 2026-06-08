@@ -120,12 +120,15 @@ def run_once(request: RunRequest) -> dict[str, object]:
     symbol = request.symbol.upper()
     candles = market_data.candles_for(symbol)
     signal = strategy.generate_signal(candles)
-    result = paper_trading_engine.execute(
-        symbol=symbol,
-        signal=signal,
-        stop_loss=request.stop_loss,
-        requested_quantity=request.requested_quantity,
-    )
+    try:
+        result = paper_trading_engine.execute(
+            symbol=symbol,
+            signal=signal,
+            stop_loss=request.stop_loss,
+            requested_quantity=request.requested_quantity,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     logger.info("Run once completed for %s with signal %s", symbol, result.signal)
     if result.order is not None:
         trade_repository.save_order_result(result.order)
