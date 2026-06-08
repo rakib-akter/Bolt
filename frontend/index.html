@@ -7,68 +7,177 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Paper trading monitor</p>
-          <h1>Tradebot Dashboard</h1>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">TB</span>
+          <div>
+            <strong>Tradebot</strong>
+            <small>Paper desk</small>
+          </div>
         </div>
-        <button id="refreshButton" type="button">Refresh</button>
-      </header>
+        <nav aria-label="Dashboard sections">
+          <a href="#overview" class="active">Overview</a>
+          <a href="#controls">Controls</a>
+          <a href="#positions">Positions</a>
+          <a href="#activity">Activity</a>
+        </nav>
+        <div class="sidebar-note">
+          <span>Mode</span>
+          <strong id="sidebarMode">Checking</strong>
+        </div>
+      </aside>
 
-      <section class="metrics" aria-label="Bot metrics">
-        <article>
-          <span>Environment</span>
-          <strong id="environment">-</strong>
-        </article>
-        <article>
-          <span>Broker</span>
-          <strong id="broker">-</strong>
-        </article>
-        <article>
-          <span>Cash</span>
-          <strong id="cash">-</strong>
-        </article>
-        <article>
-          <span>Positions</span>
-          <strong id="positions">-</strong>
-        </article>
-      </section>
+      <main class="app">
+        <header class="topbar" id="overview">
+          <div>
+            <p class="eyebrow">Live backend monitor</p>
+            <h1>Trading Dashboard</h1>
+          </div>
+          <div class="top-actions">
+            <span id="connectionBadge" class="status-pill warning">Connecting</span>
+            <button id="refreshButton" type="button">Refresh</button>
+          </div>
+        </header>
 
-      <section class="grid">
-        <form id="candleForm" class="panel">
-          <h2>Add Candle</h2>
-          <label>
-            Symbol
-            <input name="symbol" value="AAPL" required />
-          </label>
-          <label>
-            Close
-            <input name="close" type="number" step="0.01" value="101" required />
-          </label>
-          <button type="submit">Store Candle</button>
-        </form>
+        <section class="metrics" aria-label="Portfolio metrics">
+          <article class="metric-card">
+            <span>Cash</span>
+            <strong id="cash">$0.00</strong>
+            <small id="broker">Broker: -</small>
+          </article>
+          <article class="metric-card">
+            <span>Total Equity</span>
+            <strong id="equity">$0.00</strong>
+            <small id="environment">Environment: -</small>
+          </article>
+          <article class="metric-card">
+            <span>Open Positions</span>
+            <strong id="positions">0</strong>
+            <small id="marketValue">Market value: $0.00</small>
+          </article>
+          <article class="metric-card">
+            <span>Unrealized P/L</span>
+            <strong id="unrealized">$0.00</strong>
+            <small id="tradeCount">Trades: 0</small>
+          </article>
+        </section>
 
-        <form id="runForm" class="panel">
-          <h2>Run Strategy</h2>
-          <label>
-            Symbol
-            <input name="symbol" value="AAPL" required />
-          </label>
-          <label>
-            Stop Loss
-            <input name="stopLoss" type="number" step="0.01" value="95" required />
-          </label>
-          <button type="submit">Run Once</button>
-        </form>
-      </section>
+        <section class="workspace" id="controls">
+          <form id="candleForm" class="panel control-panel">
+            <div class="panel-heading">
+              <h2>Add Market Candle</h2>
+              <span>OHLCV</span>
+            </div>
+            <div class="form-grid">
+              <label>
+                Symbol
+                <input name="symbol" value="AAPL" required />
+              </label>
+              <label>
+                Open
+                <input name="open" type="number" step="0.01" value="101" required />
+              </label>
+              <label>
+                High
+                <input name="high" type="number" step="0.01" value="102" required />
+              </label>
+              <label>
+                Low
+                <input name="low" type="number" step="0.01" value="100" required />
+              </label>
+              <label>
+                Close
+                <input name="close" type="number" step="0.01" value="101.5" required />
+              </label>
+              <label>
+                Volume
+                <input name="volume" type="number" step="1" value="1000" required />
+              </label>
+            </div>
+            <button type="submit">Store Candle</button>
+          </form>
 
-      <section class="panel">
-        <h2>Latest Activity</h2>
-        <pre id="activity">Waiting for backend...</pre>
-      </section>
-    </main>
+          <form id="runForm" class="panel control-panel">
+            <div class="panel-heading">
+              <h2>Run Strategy</h2>
+              <span>Moving average</span>
+            </div>
+            <label>
+              Symbol
+              <input name="symbol" value="AAPL" required />
+            </label>
+            <label>
+              Stop Loss
+              <input name="stopLoss" type="number" step="0.01" value="95" required />
+            </label>
+            <label>
+              Requested Quantity
+              <input name="quantity" type="number" step="0.01" placeholder="Risk manager decides" />
+            </label>
+            <button type="submit">Run Once</button>
+          </form>
+        </section>
+
+        <section class="data-grid" id="positions">
+          <article class="panel">
+            <div class="panel-heading">
+              <h2>Positions</h2>
+              <span id="positionSummary">No exposure</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Qty</th>
+                    <th>Avg</th>
+                    <th>Price</th>
+                    <th>Value</th>
+                    <th>P/L</th>
+                  </tr>
+                </thead>
+                <tbody id="positionsTable">
+                  <tr><td colspan="6">Waiting for backend...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <h2>Trades</h2>
+              <span id="lastUpdated">Not synced</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Symbol</th>
+                    <th>Side</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="tradesTable">
+                  <tr><td colspan="6">Waiting for backend...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel activity-panel" id="activity">
+          <div class="panel-heading">
+            <h2>Activity</h2>
+            <span id="lastAction">Idle</span>
+          </div>
+          <pre id="activityLog">Waiting for backend...</pre>
+        </section>
+      </main>
+    </div>
     <script src="./app.js"></script>
   </body>
 </html>
-
