@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from trading_bot.broker.alpaca_broker import AlpacaBroker
+from trading_bot.broker.base_broker import BaseBroker
 from trading_bot.broker.paper_broker import PaperBroker
 from trading_bot.config import load_settings
 from trading_bot.data.market_data import Candle, MarketDataStore
@@ -14,7 +16,22 @@ from trading_bot.risk.risk_manager import RiskManager
 from trading_bot.strategy.moving_average_strategy import MovingAverageStrategy
 
 settings = load_settings()
-broker = PaperBroker(cash=settings.default_cash, prices={settings.default_symbol: 100.0})
+
+
+def create_broker() -> BaseBroker:
+    if settings.broker_name.lower() == "alpaca":
+        return AlpacaBroker(
+            api_key=settings.alpaca_api_key,
+            secret_key=settings.alpaca_secret_key,
+            base_url=settings.alpaca_base_url,
+        )
+    return PaperBroker(
+        cash=settings.default_cash,
+        prices={settings.default_symbol: 100.0},
+    )
+
+
+broker = create_broker()
 market_data = MarketDataStore()
 strategy = MovingAverageStrategy()
 risk_manager = RiskManager(
@@ -23,7 +40,7 @@ risk_manager = RiskManager(
 )
 order_manager = OrderManager(broker)
 portfolio_manager = PortfolioManager(broker)
-trade_repository = TradeRepository()
+trade_repository = TradeRepository(settings.database_path)
 
 app = FastAPI(title=settings.app_name)
 
