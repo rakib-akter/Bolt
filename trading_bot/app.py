@@ -122,6 +122,11 @@ def add_candle(request: CandleRequest) -> dict[str, str]:
     return {"symbol": request.symbol.upper(), "status": "stored"}
 
 
+@app.get("/candles/{symbol}")
+def candles(symbol: str) -> list[dict[str, object]]:
+    return [asdict(candle) for candle in market_data.candles_for(symbol)]
+
+
 @app.get("/portfolio")
 def portfolio() -> dict[str, object]:
     return asdict(portfolio_manager.snapshot())
