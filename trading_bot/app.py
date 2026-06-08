@@ -2,6 +2,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from trading_bot.broker.alpaca_broker import AlpacaBroker
@@ -45,6 +46,12 @@ portfolio_manager = PortfolioManager(broker)
 trade_repository = TradeRepository(settings.database_path)
 
 app = FastAPI(title=settings.app_name)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class PriceRequest(BaseModel):
