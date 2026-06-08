@@ -14,8 +14,10 @@ from trading_bot.execution.paper_trading import PaperTradingEngine
 from trading_bot.portfolio.portfolio_manager import PortfolioManager
 from trading_bot.risk.risk_manager import RiskManager
 from trading_bot.strategy.moving_average_strategy import MovingAverageStrategy
+from trading_bot.utils.logger import get_logger
 
 settings = load_settings()
+logger = get_logger(__name__)
 
 
 def create_broker() -> BaseBroker:
@@ -99,6 +101,7 @@ def add_candle(request: CandleRequest) -> dict[str, str]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     market_data.add_candle(candle)
     broker.set_price(request.symbol, request.close)
+    logger.info("Stored candle for %s at close %.2f", request.symbol.upper(), request.close)
     return {"symbol": request.symbol.upper(), "status": "stored"}
 
 
@@ -123,6 +126,7 @@ def run_once(request: RunRequest) -> dict[str, object]:
         stop_loss=request.stop_loss,
         requested_quantity=request.requested_quantity,
     )
+    logger.info("Run once completed for %s with signal %s", symbol, result.signal)
     if result.order is not None:
         trade_repository.save_order_result(result.order)
     return {
