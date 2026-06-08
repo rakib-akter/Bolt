@@ -10,7 +10,7 @@ from trading_bot.broker.paper_broker import PaperBroker
 from trading_bot.config import load_settings
 from trading_bot.data.market_data import Candle, MarketDataStore
 from trading_bot.database.db import TradeRepository
-from trading_bot.execution.order_manager import ExecutionRequest, OrderManager
+from trading_bot.execution.paper_trading import PaperTradingEngine
 from trading_bot.portfolio.portfolio_manager import PortfolioManager
 from trading_bot.risk.risk_manager import RiskManager
 from trading_bot.strategy.moving_average_strategy import MovingAverageStrategy
@@ -38,7 +38,7 @@ risk_manager = RiskManager(
     max_risk_per_trade=settings.max_risk_per_trade,
     max_position_value=settings.max_position_value,
 )
-order_manager = OrderManager(broker)
+paper_trading_engine = PaperTradingEngine(broker, risk_manager)
 portfolio_manager = PortfolioManager(broker)
 trade_repository = TradeRepository(settings.database_path)
 
@@ -117,32 +117,17 @@ def run_once(request: RunRequest) -> dict[str, object]:
     symbol = request.symbol.upper()
     candles = market_data.candles_for(symbol)
     signal = strategy.generate_signal(candles)
-    if signal == "HOLD":
-        return {"symbol": symbol, "signal": signal, "order": None, "risk": None}
-
-    price = broker.get_price(symbol)
-    decision = risk_manager.approve_trade(
-        balance=broker.get_balance(),
-        price=price,
+    result = paper_trading_engine.execute(
+        symbol=symbol,
+        signal=signal,
         stop_loss=request.stop_loss,
         requested_quantity=request.requested_quantity,
     )
-    if not decision.approved:
-        return {
-            "symbol": symbol,
-            "signal": signal,
-            "order": None,
-            "risk": asdict(decision),
-        }
-
-    result = order_manager.execute_signal(
-        ExecutionRequest(symbol=symbol, signal=signal, quantity=decision.quantity)
-    )
-    if result is not None:
-        trade_repository.save_order_result(result)
+    if result.order is not None:
+        trade_repository.save_order_result(result.order)
     return {
         "symbol": symbol,
-        "signal": signal,
-        "risk": asdict(decision),
-        "order": asdict(result) if result is not None else None,
+        "signal": result.signal,
+        "risk": asdict(result.risk) if result.risk is not None else None,
+        "order": asdict(result.order) if result.order is not None else None,
     }
