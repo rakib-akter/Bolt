@@ -218,6 +218,54 @@ label {
   margin-bottom: 14px;
 }
 
+.chart-panel {
+  margin-bottom: 14px;
+}
+
+.chart-search {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(140px, 1fr) auto auto;
+  min-width: min(100%, 520px);
+}
+
+.secondary-button {
+  background: #334155;
+}
+
+.secondary-button:hover {
+  background: #1f2937;
+}
+
+.chart-shell {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  height: 340px;
+  margin-top: 14px;
+  position: relative;
+}
+
+canvas {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.chart-empty {
+  align-items: center;
+  color: #607080;
+  display: none;
+  inset: 0;
+  justify-content: center;
+  position: absolute;
+}
+
+.chart-empty.visible {
+  display: flex;
+}
+
 .control-panel,
 form {
   display: grid;
@@ -328,6 +376,7 @@ pre {
   .metrics,
   .workspace,
   .data-grid,
+  .chart-search,
   .form-grid,
   nav {
     grid-template-columns: 1fr;
