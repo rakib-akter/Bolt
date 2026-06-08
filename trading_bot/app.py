@@ -73,6 +73,16 @@ def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment}
 
 
+@app.get("/status")
+def status() -> dict[str, object]:
+    return {
+        "environment": settings.environment,
+        "broker": settings.broker_name,
+        "cash": broker.get_balance(),
+        "position_count": len(broker.get_positions()),
+    }
+
+
 @app.post("/prices")
 def set_price(request: PriceRequest) -> dict[str, float | str]:
     try:
