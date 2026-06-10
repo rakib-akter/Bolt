@@ -231,6 +231,11 @@ function chartPoint(value, index, values, width, height, padding) {
   };
 }
 
+function priceY(value, min, max, height, padding) {
+  const range = max - min || 1;
+  return height - padding - ((value - min) / range) * (height - padding * 2);
+}
+
 function drawPriceChart(candles, symbol) {
   latestCandles = candles;
   const canvas = fields.priceChart;
@@ -254,71 +259,76 @@ function drawPriceChart(candles, symbol) {
   }
 
   fields.chartEmpty.classList.remove("visible");
-  const padding = 42;
+  const padding = 52;
   const closes = displayCandles.map((candle) => Number(candle.close));
+  const highs = displayCandles.map((candle) => Number(candle.high));
+  const lows = displayCandles.map((candle) => Number(candle.low));
   const volumes = displayCandles.map((candle) => Number(candle.volume || 0));
-  const minPrice = Math.min(...closes);
-  const maxPrice = Math.max(...closes);
+  const minPrice = Math.min(...lows);
+  const maxPrice = Math.max(...highs);
   const maValues = movingAverage(closes, 5);
   const maxVolume = Math.max(...volumes, 1);
 
-  context.strokeStyle = "#1d3556";
+  context.strokeStyle = "#222b3a";
   context.lineWidth = 1;
   context.beginPath();
-  for (let index = 0; index < 4; index += 1) {
-    const y = padding + ((height - padding * 2) / 3) * index;
+  for (let index = 0; index < 6; index += 1) {
+    const y = padding + ((height - padding * 2) / 5) * index;
     context.moveTo(padding, y);
     context.lineTo(width - padding, y);
   }
+  for (let index = 0; index < 8; index += 1) {
+    const x = padding + ((width - padding * 2) / 7) * index;
+    context.moveTo(x, padding);
+    context.lineTo(x, height - padding);
+  }
   context.stroke();
 
-  volumes.forEach((volume, index) => {
-    const barWidth = Math.max(3, (width - padding * 2) / Math.max(volumes.length, 1) - 4);
-    const x = padding + ((width - padding * 2) / Math.max(volumes.length, 1)) * index;
+  const candleSlot = (width - padding * 2) / Math.max(displayCandles.length, 1);
+  const bodyWidth = Math.max(5, Math.min(18, candleSlot * 0.62));
+
+  displayCandles.forEach((candle, index) => {
+    const volume = volumes[index];
+    const open = Number(candle.open);
+    const close = Number(candle.close);
+    const high = Number(candle.high);
+    const low = Number(candle.low);
+    const x = padding + candleSlot * index + candleSlot / 2;
+    const openY = priceY(open, minPrice, maxPrice, height, padding);
+    const closeY = priceY(close, minPrice, maxPrice, height, padding);
+    const highY = priceY(high, minPrice, maxPrice, height, padding);
+    const lowY = priceY(low, minPrice, maxPrice, height, padding);
+    const isUp = close >= open;
+    const color = isUp ? "#26a69a" : "#ef5350";
+    const bodyTop = Math.min(openY, closeY);
+    const bodyHeight = Math.max(2, Math.abs(closeY - openY));
     const barHeight = (volume / maxVolume) * 54;
-    context.fillStyle = "rgba(59, 130, 246, 0.28)";
-    context.fillRect(x, height - padding - barHeight, barWidth, barHeight);
-  });
 
-  const gradient = context.createLinearGradient(0, padding, 0, height - padding);
-  gradient.addColorStop(0, "rgba(56, 189, 248, 0.24)");
-  gradient.addColorStop(1, "rgba(56, 189, 248, 0.03)");
+    context.fillStyle = isUp ? "rgba(38, 166, 154, 0.18)" : "rgba(239, 83, 80, 0.18)";
+    context.fillRect(x - bodyWidth / 2, height - padding - barHeight, bodyWidth, barHeight);
 
-  context.beginPath();
-  closes.forEach((close, index) => {
-    const point = chartPoint(close, index, closes, width, height, padding);
-    if (index === 0) {
-      context.moveTo(point.x, point.y);
+    context.strokeStyle = color;
+    context.lineWidth = 1.4 * (window.devicePixelRatio || 1);
+    context.beginPath();
+    context.moveTo(x, highY);
+    context.lineTo(x, lowY);
+    context.stroke();
+
+    if (isUp) {
+      context.strokeStyle = color;
+      context.strokeRect(x - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
     } else {
-      context.lineTo(point.x, point.y);
+      context.fillStyle = color;
+      context.fillRect(x - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
     }
   });
-  const lastPoint = chartPoint(closes.at(-1), closes.length - 1, closes, width, height, padding);
-  const firstPoint = chartPoint(closes[0], 0, closes, width, height, padding);
-  context.lineTo(lastPoint.x, height - padding);
-  context.lineTo(firstPoint.x, height - padding);
-  context.closePath();
-  context.fillStyle = gradient;
-  context.fill();
 
-  context.strokeStyle = "#38bdf8";
-  context.lineWidth = 3;
-  context.beginPath();
-  closes.forEach((close, index) => {
-    const { x, y } = chartPoint(close, index, closes, width, height, padding);
-    if (index === 0) {
-      context.moveTo(x, y);
-    } else {
-      context.lineTo(x, y);
-    }
-  });
-  context.stroke();
-
-  context.strokeStyle = "#a78bfa";
-  context.lineWidth = 2;
+  context.strokeStyle = "#fbc02d";
+  context.lineWidth = 1.8 * (window.devicePixelRatio || 1);
   context.beginPath();
   maValues.forEach((value, index) => {
-    const { x, y } = chartPoint(value, index, closes, width, height, padding);
+    const x = padding + candleSlot * index + candleSlot / 2;
+    const y = priceY(value, minPrice, maxPrice, height, padding);
     if (index === 0) {
       context.moveTo(x, y);
     } else {
@@ -327,15 +337,15 @@ function drawPriceChart(candles, symbol) {
   });
   context.stroke();
 
-  context.fillStyle = "#38bdf8";
-  const markerStart = Math.max(0, closes.length - 8);
-  closes.slice(markerStart).forEach((close, offset) => {
-    const index = markerStart + offset;
-    const { x, y } = chartPoint(close, index, closes, width, height, padding);
-    context.beginPath();
-    context.arc(x, y, 4.5, 0, Math.PI * 2);
-    context.fill();
-  });
+  const lastCloseY = priceY(closes.at(-1), minPrice, maxPrice, height, padding);
+  context.setLineDash([6, 6]);
+  context.strokeStyle = "#2962ff";
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(padding, lastCloseY);
+  context.lineTo(width - padding, lastCloseY);
+  context.stroke();
+  context.setLineDash([]);
 
   context.fillStyle = "#c9d7eb";
   context.font = `${13 * (window.devicePixelRatio || 1)}px Segoe UI, Arial`;

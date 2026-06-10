@@ -1,8 +1,8 @@
 :root {
   color-scheme: dark;
   font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
-  background: #061528;
-  color: #e5edf7;
+  background: #0b1220;
+  color: #d1d4dc;
 }
 
 * {
@@ -14,20 +14,19 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(circle at top right, rgba(37, 99, 235, 0.22), transparent 32rem),
-    #061528;
+  background: #0b1220;
   margin: 0;
 }
 
 .layout {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .sidebar {
-  background: #07111f;
+  background: #0f1725;
+  border-right: 1px solid #222b3a;
   color: #f8fafc;
   display: flex;
   flex-direction: column;
@@ -46,7 +45,7 @@ body {
 
 .brand-mark {
   align-items: center;
-  background: #38bdf8;
+  background: #2962ff;
   border-radius: 8px;
   color: #04111f;
   display: inline-flex;
@@ -83,7 +82,7 @@ nav a {
 
 nav a.active,
 nav a:hover {
-  background: #102542;
+  background: #1e293b;
   color: #ffffff;
 }
 
@@ -95,7 +94,7 @@ nav a:hover {
 
 .app {
   min-width: 0;
-  padding: 28px;
+  padding: 18px;
 }
 
 .topbar,
@@ -108,19 +107,23 @@ nav a:hover {
 }
 
 .topbar {
-  margin-bottom: 20px;
+  background: #131722;
+  border: 1px solid #222b3a;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  padding: 12px 14px;
 }
 
 .market-strip {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .market-strip article {
-  background: #071a31;
-  border: 1px solid #1d3556;
+  background: #131722;
+  border: 1px solid #222b3a;
   border-radius: 8px;
   padding: 12px 14px;
 }
@@ -164,7 +167,7 @@ h2 {
 button {
   border: 0;
   border-radius: 7px;
-  background: #2563eb;
+  background: #2962ff;
   color: white;
   cursor: pointer;
   font-weight: 750;
@@ -173,7 +176,7 @@ button {
 }
 
 button:hover {
-  background: #1d4ed8;
+  background: #1e53e5;
 }
 
 .status-pill {
@@ -207,10 +210,10 @@ button:hover {
 
 .metric-card,
 .panel {
-  background: rgba(10, 25, 47, 0.92);
-  border: 1px solid #1d3556;
+  background: #131722;
+  border: 1px solid #222b3a;
   border-radius: 8px;
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22);
+  box-shadow: none;
   padding: 16px;
 }
 
@@ -240,11 +243,11 @@ label {
 }
 
 .positive {
-  color: #5eead4;
+  color: #26a69a;
 }
 
 .negative {
-  color: #fca5a5;
+  color: #ef5350;
 }
 
 .workspace,
@@ -261,9 +264,39 @@ label {
 
 .market-workspace {
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.5fr);
-  margin-bottom: 14px;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  margin-bottom: 10px;
+}
+
+.chart-panel {
+  overflow: hidden;
+  padding: 0;
+}
+
+.chart-actionbar {
+  align-items: center;
+  background: #0f1725;
+  border-bottom: 1px solid #222b3a;
+  display: flex;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 10px;
+}
+
+.exchange-pill,
+.chart-mode-pill {
+  background: #1e293b;
+  border: 1px solid #2f3b52;
+  border-radius: 5px;
+  color: #d1d4dc;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 8px;
+}
+
+.exchange-pill {
+  color: #8ab4ff;
 }
 
 .terminal-heading {
@@ -271,6 +304,7 @@ label {
   display: flex;
   gap: 14px;
   justify-content: space-between;
+  padding: 14px 16px 0;
 }
 
 .terminal-heading h2 {
@@ -280,9 +314,9 @@ label {
 }
 
 .chart-toolbar {
-  background: #071a31;
-  border: 1px solid #1d3556;
-  border-radius: 999px;
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 5px;
   display: inline-flex;
   gap: 4px;
   padding: 4px;
@@ -297,7 +331,7 @@ label {
 
 .range-button.active,
 .range-button:hover {
-  background: #1e3a5f;
+  background: #2962ff;
   color: #ffffff;
 }
 
@@ -307,21 +341,22 @@ label {
   gap: 10px;
   grid-template-columns: minmax(130px, 1fr) auto auto auto auto;
   margin-top: 16px;
+  padding: 0 16px;
 }
 
 .secondary-button {
-  background: #1e3a5f;
+  background: #1e293b;
 }
 
 .secondary-button:hover {
-  background: #274b78;
+  background: #2f3b52;
 }
 
 .chart-shell {
-  background: linear-gradient(180deg, #081a31 0%, #0b2038 100%);
-  border: 1px solid #1d3556;
-  border-radius: 8px;
-  height: 380px;
+  background: #131722;
+  border: 0;
+  border-radius: 0;
+  height: 540px;
   margin-top: 14px;
   position: relative;
 }
@@ -351,13 +386,14 @@ canvas {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 12px;
+  padding: 0 16px 14px;
 }
 
 .chart-legend span {
   align-items: center;
-  background: #0b2038;
-  border: 1px solid #1d3556;
-  border-radius: 999px;
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 5px;
   display: inline-flex;
   font-size: 13px;
   gap: 7px;
@@ -369,12 +405,13 @@ canvas {
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 14px;
+  padding: 0 16px;
 }
 
 .quote-board div {
-  background: #071a31;
-  border: 1px solid #1d3556;
-  border-radius: 8px;
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 5px;
   padding: 10px 12px;
 }
 
@@ -398,11 +435,11 @@ canvas {
 }
 
 .price-line {
-  background: #38bdf8;
+  background: #2962ff;
 }
 
 .ma-line {
-  background: #a78bfa;
+  background: #fbc02d;
 }
 
 .legend-block {
@@ -415,10 +452,46 @@ canvas {
   background: #3b82f6;
 }
 
+.candle-up {
+  background: #26a69a;
+}
+
+.candle-down {
+  background: #ef5350;
+}
+
+.drawing-toolbar {
+  align-items: center;
+  background: #0f1725;
+  border-right: 1px solid #222b3a;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  left: 0;
+  padding-top: 12px;
+  position: absolute;
+  top: 0;
+  width: 42px;
+  z-index: 2;
+}
+
+.drawing-toolbar span {
+  align-items: center;
+  border: 1px solid #2f3b52;
+  border-radius: 5px;
+  color: #94a9c6;
+  display: inline-flex;
+  font-size: 13px;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
 .switch-control {
   align-items: center;
-  border: 1px solid #1d3556;
-  border-radius: 999px;
+  border: 1px solid #222b3a;
+  border-radius: 5px;
   color: #c9d7eb;
   display: inline-flex;
   gap: 8px;
@@ -427,7 +500,7 @@ canvas {
 }
 
 .switch-control input {
-  accent-color: #38bdf8;
+  accent-color: #2962ff;
   min-height: auto;
 }
 
@@ -438,9 +511,9 @@ canvas {
 }
 
 .watchlist-item {
-  background: #071a31;
-  border: 1px solid #1d3556;
-  border-radius: 8px;
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 5px;
   cursor: pointer;
   display: grid;
   gap: 7px;
@@ -449,7 +522,7 @@ canvas {
 
 .watchlist-item:hover,
 .watchlist-item.active {
-  border-color: #38bdf8;
+  border-color: #2962ff;
 }
 
 .watchlist-row {
@@ -491,9 +564,9 @@ label {
 }
 
 input {
-  background: #071a31;
-  border: 1px solid #24466f;
-  border-radius: 7px;
+  background: #0f1725;
+  border: 1px solid #2f3b52;
+  border-radius: 5px;
   color: #e5edf7;
   font-size: 15px;
   min-height: 40px;
@@ -501,8 +574,8 @@ input {
 }
 
 input:focus {
-  border-color: #38bdf8;
-  outline: 2px solid rgba(56, 189, 248, 0.22);
+  border-color: #2962ff;
+  outline: 2px solid rgba(41, 98, 255, 0.22);
 }
 
 .table-wrap {
@@ -518,7 +591,7 @@ table {
 
 th,
 td {
-  border-bottom: 1px solid #173152;
+  border-bottom: 1px solid #222b3a;
   padding: 10px 8px;
   text-align: left;
   white-space: nowrap;
@@ -539,7 +612,7 @@ td {
 }
 
 pre {
-  background: #04101f;
+  background: #0f1725;
   border-radius: 7px;
   color: #f8fafc;
   margin: 12px 0 0;

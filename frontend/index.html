@@ -13,7 +13,7 @@
           <span class="brand-mark">TB</span>
           <div>
             <strong>Tradebot</strong>
-            <small>Paper desk</small>
+            <small>Chart desk</small>
           </div>
         </div>
         <nav aria-label="Dashboard sections">
@@ -32,8 +32,8 @@
       <main class="app">
         <header class="topbar" id="overview">
           <div>
-            <p class="eyebrow">Paper trading command center</p>
-            <h1>Market Console</h1>
+            <p class="eyebrow">Paper market terminal</p>
+            <h1>Tradebot Charting</h1>
           </div>
           <div class="top-actions">
             <span id="connectionBadge" class="status-pill warning">Connecting</span>
@@ -93,6 +93,12 @@
 
         <section class="market-workspace" id="chart">
           <article class="panel chart-panel">
+            <div class="chart-actionbar">
+              <span class="exchange-pill">NASDAQ</span>
+              <span class="chart-mode-pill">Candles</span>
+              <span class="chart-mode-pill">MA 5</span>
+              <span class="chart-mode-pill">Volume</span>
+            </div>
             <div class="terminal-heading">
               <div>
                 <p class="eyebrow">Instrument</p>
@@ -128,11 +134,19 @@
               <div><span>Volume</span><strong id="chartVolume">-</strong></div>
             </div>
             <div class="chart-shell">
+              <div class="drawing-toolbar" aria-hidden="true">
+                <span>+</span>
+                <span>|</span>
+                <span>/</span>
+                <span>T</span>
+                <span>⌖</span>
+              </div>
               <canvas id="priceChart" width="960" height="320" aria-label="Price chart"></canvas>
               <div id="chartEmpty" class="chart-empty">No candles yet for this symbol.</div>
             </div>
             <div class="chart-legend">
-              <span><i class="legend-line price-line"></i> Close</span>
+              <span><i class="legend-block candle-up"></i> Up candle</span>
+              <span><i class="legend-block candle-down"></i> Down candle</span>
               <span><i class="legend-line ma-line"></i> 5-candle average</span>
               <span><i class="legend-block volume-block"></i> Volume</span>
             </div>
