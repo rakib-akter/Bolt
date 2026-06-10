@@ -26,7 +26,11 @@ const fields = {
   chartHigh: document.querySelector("#chartHigh"),
   chartLow: document.querySelector("#chartLow"),
   chartVolume: document.querySelector("#chartVolume"),
+  chartTitle: document.querySelector("#chartTitle"),
   liveRefreshToggle: document.querySelector("#liveRefreshToggle"),
+  liveMarketToggle: document.querySelector("#liveMarketToggle"),
+  watchlist: document.querySelector("#watchlist"),
+  watchlistStatus: document.querySelector("#watchlistStatus"),
   cashSparkline: document.querySelector("#cashSparkline"),
   equitySparkline: document.querySelector("#equitySparkline"),
   positionsSparkline: document.querySelector("#positionsSparkline"),
@@ -35,6 +39,10 @@ const fields = {
 
 let activeChartSymbol = "AAPL";
 let liveRefreshTimer;
+let liveMarketTimer;
+let activeChartRange = "all";
+let latestCandles = [];
+const watchlistSymbols = ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"];
 const metricHistory = {
   cash: [],
   equity: [],
@@ -149,6 +157,53 @@ function renderSellDecisions(decisions) {
     .join("");
 }
 
+function changePercent(candles) {
+  if (candles.length < 2) {
+    return 0;
+  }
+  const first = Number(candles[0].close);
+  const last = Number(candles.at(-1).close);
+  return first ? (last - first) / first : 0;
+}
+
+function visibleCandles(candles) {
+  if (activeChartRange === "all") {
+    return candles;
+  }
+  return candles.slice(-Number(activeChartRange));
+}
+
+async function renderWatchlist() {
+  const rows = await Promise.all(
+    watchlistSymbols.map(async (symbol) => {
+      const candles = await request(`/candles/${symbol}`);
+      const lastClose = candles.length ? Number(candles.at(-1).close) : 0;
+      const change = changePercent(candles);
+      return { symbol, candles, lastClose, change };
+    }),
+  );
+
+  fields.watchlistStatus.textContent = `${rows.length} symbols`;
+  fields.watchlist.innerHTML = rows
+    .map((row) => {
+      const changeClass = row.change >= 0 ? "positive" : "negative";
+      const activeClass = row.symbol === activeChartSymbol ? " active" : "";
+      return `
+        <button class="watchlist-item${activeClass}" type="button" data-symbol="${row.symbol}">
+          <span class="watchlist-row">
+            <span class="watchlist-symbol">${row.symbol}</span>
+            <span class="watchlist-price">${row.lastClose ? money(row.lastClose) : "-"}</span>
+          </span>
+          <span class="watchlist-row">
+            <span class="watchlist-meta">${row.candles.length} candles</span>
+            <span class="${changeClass}">${(row.change * 100).toFixed(2)}%</span>
+          </span>
+        </button>
+      `;
+    })
+    .join("");
+}
+
 function resizeCanvas(canvas) {
   const rect = canvas.getBoundingClientRect();
   const ratio = window.devicePixelRatio || 1;
@@ -177,6 +232,7 @@ function chartPoint(value, index, values, width, height, padding) {
 }
 
 function drawPriceChart(candles, symbol) {
+  latestCandles = candles;
   const canvas = fields.priceChart;
   resizeCanvas(canvas);
   const context = canvas.getContext("2d");
@@ -184,20 +240,23 @@ function drawPriceChart(candles, symbol) {
   const height = canvas.height;
   context.clearRect(0, 0, width, height);
 
-  if (!candles.length) {
+  const displayCandles = visibleCandles(candles);
+
+  if (!displayCandles.length) {
     fields.chartEmpty.classList.add("visible");
     fields.chartSummary.textContent = `${symbol}: no candles`;
-    fields.chartLast.textContent = "Last: -";
-    fields.chartHigh.textContent = "High: -";
-    fields.chartLow.textContent = "Low: -";
-    fields.chartVolume.textContent = "Volume: -";
+    fields.chartTitle.textContent = symbol;
+    fields.chartLast.textContent = "-";
+    fields.chartHigh.textContent = "-";
+    fields.chartLow.textContent = "-";
+    fields.chartVolume.textContent = "-";
     return;
   }
 
   fields.chartEmpty.classList.remove("visible");
   const padding = 42;
-  const closes = candles.map((candle) => Number(candle.close));
-  const volumes = candles.map((candle) => Number(candle.volume || 0));
+  const closes = displayCandles.map((candle) => Number(candle.close));
+  const volumes = displayCandles.map((candle) => Number(candle.volume || 0));
   const minPrice = Math.min(...closes);
   const maxPrice = Math.max(...closes);
   const maValues = movingAverage(closes, 5);
@@ -282,11 +341,12 @@ function drawPriceChart(candles, symbol) {
   context.font = `${13 * (window.devicePixelRatio || 1)}px Segoe UI, Arial`;
   context.fillText(money(maxPrice), 8, padding + 4);
   context.fillText(money(minPrice), 8, height - padding + 4);
-  fields.chartSummary.textContent = `${symbol}: ${candles.length} candles, last close ${money(closes.at(-1))}`;
-  fields.chartLast.textContent = `Last: ${money(closes.at(-1))}`;
-  fields.chartHigh.textContent = `High: ${money(maxPrice)}`;
-  fields.chartLow.textContent = `Low: ${money(minPrice)}`;
-  fields.chartVolume.textContent = `Volume: ${volumes.at(-1).toLocaleString()}`;
+  fields.chartTitle.textContent = symbol;
+  fields.chartSummary.textContent = `${displayCandles.length}/${candles.length} candles shown`;
+  fields.chartLast.textContent = money(closes.at(-1));
+  fields.chartHigh.textContent = money(maxPrice);
+  fields.chartLow.textContent = money(minPrice);
+  fields.chartVolume.textContent = volumes.at(-1).toLocaleString();
 }
 
 async function loadChart(symbol = activeChartSymbol) {
@@ -365,6 +425,27 @@ async function addDemoCandles(symbol) {
   }
 }
 
+async function addLiveTick(symbol) {
+  const candles = await request(`/candles/${symbol}`);
+  const previous = candles.length ? Number(candles.at(-1).close) : 100 + Math.random() * 12;
+  const move = (Math.random() - 0.48) * 2.1;
+  const open = previous;
+  const close = Math.max(1, previous + move);
+  const high = Math.max(open, close) + Math.random() * 0.75;
+  const low = Math.max(0.01, Math.min(open, close) - Math.random() * 0.75);
+  await request("/candles", {
+    method: "POST",
+    body: JSON.stringify({
+      symbol,
+      open,
+      high,
+      low,
+      close,
+      volume: 1200 + Math.round(Math.random() * 1800),
+    }),
+  });
+}
+
 async function refreshDashboard() {
   const [status, portfolio, trades, sellDecisions] = await Promise.all([
     request("/status"),
@@ -390,6 +471,7 @@ async function refreshDashboard() {
   renderSellDecisions(sellDecisions);
   renderMetricSparklines(portfolio, status);
   await loadChart(activeChartSymbol);
+  await renderWatchlist();
   setConnection("ok", "Connected");
   showActivity("Dashboard refreshed", { status, portfolio, trades, sellDecisions });
 }
@@ -432,6 +514,7 @@ document.querySelector("#symbolSearchForm").addEventListener("submit", async (ev
   const symbol = String(form.get("symbol")).toUpperCase();
   try {
     await loadChart(symbol);
+    await renderWatchlist();
     showActivity("Chart loaded", { symbol });
   } catch (error) {
     setConnection("error", "Offline");
@@ -445,12 +528,34 @@ document.querySelector("#seedCandlesButton").addEventListener("click", async () 
   try {
     await addDemoCandles(symbol);
     await loadChart(symbol);
+    await renderWatchlist();
     await refreshDashboard();
     showActivity("Demo candles added", { symbol });
   } catch (error) {
     setConnection("error", "Offline");
     showActivity("Demo candle failed", { error: error.message });
   }
+});
+
+document.querySelectorAll(".range-button").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".range-button").forEach((item) => item.classList.remove("active"));
+    button.classList.add("active");
+    activeChartRange = button.dataset.range;
+    drawPriceChart(latestCandles, activeChartSymbol);
+  });
+});
+
+fields.watchlist.addEventListener("click", async (event) => {
+  const item = event.target.closest("[data-symbol]");
+  if (!item) {
+    return;
+  }
+  const symbol = item.dataset.symbol;
+  document.querySelector("#symbolSearchForm input[name='symbol']").value = symbol;
+  await loadChart(symbol);
+  await renderWatchlist();
+  showActivity("Watchlist symbol loaded", { symbol });
 });
 
 document.querySelector("#runForm").addEventListener("submit", async (event) => {
@@ -498,6 +603,32 @@ fields.liveRefreshToggle.addEventListener("change", () => {
   });
 });
 
+function startLiveMarket() {
+  clearInterval(liveMarketTimer);
+  if (!fields.liveMarketToggle.checked) {
+    return;
+  }
+  liveMarketTimer = setInterval(async () => {
+    try {
+      await addLiveTick(activeChartSymbol);
+      await loadChart(activeChartSymbol);
+      await renderWatchlist();
+      showActivity("Live tick added", { symbol: activeChartSymbol });
+    } catch (error) {
+      setConnection("error", "Offline");
+      showActivity("Live tick failed", { error: error.message });
+    }
+  }, 2500);
+}
+
+fields.liveMarketToggle.addEventListener("change", () => {
+  startLiveMarket();
+  showActivity(fields.liveMarketToggle.checked ? "Simulated ticks on" : "Simulated ticks off", {
+    symbol: activeChartSymbol,
+    interval_seconds: 2.5,
+  });
+});
+
 window.addEventListener("resize", () => {
   loadChart(activeChartSymbol).catch(() => undefined);
   drawSparkline(fields.cashSparkline, metricHistory.cash, "#38bdf8");
@@ -514,3 +645,4 @@ refreshDashboard().catch((error) => {
   });
 });
 startLiveRefresh();
+startLiveMarket();

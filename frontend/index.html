@@ -18,6 +18,7 @@
         </div>
         <nav aria-label="Dashboard sections">
           <a href="#overview" class="active">Overview</a>
+          <a href="#chart">Markets</a>
           <a href="#controls">Controls</a>
           <a href="#positions">Positions</a>
           <a href="#activity">Activity</a>
@@ -31,14 +32,37 @@
       <main class="app">
         <header class="topbar" id="overview">
           <div>
-            <p class="eyebrow">Live backend monitor</p>
-            <h1>Trading Dashboard</h1>
+            <p class="eyebrow">Paper trading command center</p>
+            <h1>Market Console</h1>
           </div>
           <div class="top-actions">
             <span id="connectionBadge" class="status-pill warning">Connecting</span>
             <button id="refreshButton" type="button">Refresh</button>
           </div>
         </header>
+
+        <section class="market-strip" aria-label="Market tape">
+          <article>
+            <span>S&P 500</span>
+            <strong>5,421.03</strong>
+            <small class="positive">+0.42%</small>
+          </article>
+          <article>
+            <span>NASDAQ</span>
+            <strong>17,608.44</strong>
+            <small class="positive">+0.61%</small>
+          </article>
+          <article>
+            <span>DOW</span>
+            <strong>39,118.86</strong>
+            <small class="negative">-0.08%</small>
+          </article>
+          <article>
+            <span>VIX</span>
+            <strong>13.21</strong>
+            <small class="negative">-1.12%</small>
+          </article>
+        </section>
 
         <section class="metrics" aria-label="Portfolio metrics">
           <article class="metric-card">
@@ -67,11 +91,19 @@
           </article>
         </section>
 
-        <section class="panel chart-panel" id="chart">
-          <div class="panel-heading">
-            <div>
-              <h2>Price Chart</h2>
-              <span id="chartSummary">Search a symbol to load candles</span>
+        <section class="market-workspace" id="chart">
+          <article class="panel chart-panel">
+            <div class="terminal-heading">
+              <div>
+                <p class="eyebrow">Instrument</p>
+                <h2 id="chartTitle">AAPL</h2>
+                <span id="chartSummary">Search a symbol to load candles</span>
+              </div>
+              <div class="chart-toolbar" aria-label="Chart controls">
+                <button type="button" class="range-button active" data-range="all">All</button>
+                <button type="button" class="range-button" data-range="20">20</button>
+                <button type="button" class="range-button" data-range="10">10</button>
+              </div>
             </div>
             <form id="symbolSearchForm" class="chart-search">
               <label>
@@ -84,23 +116,35 @@
                 <input id="liveRefreshToggle" type="checkbox" checked />
                 <span>Live</span>
               </label>
+              <label class="switch-control">
+                <input id="liveMarketToggle" type="checkbox" />
+                <span>Sim ticks</span>
+              </label>
             </form>
-          </div>
-          <div class="chart-stats" aria-label="Chart stats">
-            <span id="chartLast">Last: -</span>
-            <span id="chartHigh">High: -</span>
-            <span id="chartLow">Low: -</span>
-            <span id="chartVolume">Volume: -</span>
-          </div>
-          <div class="chart-shell">
-            <canvas id="priceChart" width="960" height="320" aria-label="Price chart"></canvas>
-            <div id="chartEmpty" class="chart-empty">No candles yet for this symbol.</div>
-          </div>
-          <div class="chart-legend">
-            <span><i class="legend-line price-line"></i> Close</span>
-            <span><i class="legend-line ma-line"></i> 5-candle average</span>
-            <span><i class="legend-block volume-block"></i> Volume</span>
-          </div>
+            <div class="quote-board" aria-label="Chart stats">
+              <div><span>Last</span><strong id="chartLast">-</strong></div>
+              <div><span>High</span><strong id="chartHigh">-</strong></div>
+              <div><span>Low</span><strong id="chartLow">-</strong></div>
+              <div><span>Volume</span><strong id="chartVolume">-</strong></div>
+            </div>
+            <div class="chart-shell">
+              <canvas id="priceChart" width="960" height="320" aria-label="Price chart"></canvas>
+              <div id="chartEmpty" class="chart-empty">No candles yet for this symbol.</div>
+            </div>
+            <div class="chart-legend">
+              <span><i class="legend-line price-line"></i> Close</span>
+              <span><i class="legend-line ma-line"></i> 5-candle average</span>
+              <span><i class="legend-block volume-block"></i> Volume</span>
+            </div>
+          </article>
+
+          <aside class="panel watchlist-panel">
+            <div class="panel-heading">
+              <h2>Watchlist</h2>
+              <span id="watchlistStatus">Live paper feed</span>
+            </div>
+            <div id="watchlist" class="watchlist"></div>
+          </aside>
         </section>
 
         <section class="workspace" id="controls">

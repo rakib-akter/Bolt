@@ -111,6 +111,33 @@ nav a:hover {
   margin-bottom: 20px;
 }
 
+.market-strip {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.market-strip article {
+  background: #071a31;
+  border: 1px solid #1d3556;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.market-strip span,
+.market-strip small {
+  color: #94a9c6;
+  display: block;
+  font-size: 12px;
+}
+
+.market-strip strong {
+  display: block;
+  font-size: 18px;
+  margin: 4px 0;
+}
+
 .eyebrow {
   color: #8fa5c2;
   font-size: 13px;
@@ -232,12 +259,54 @@ label {
   margin-bottom: 14px;
 }
 
+.market-workspace {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.5fr);
+  margin-bottom: 14px;
+}
+
+.terminal-heading {
+  align-items: start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.terminal-heading h2 {
+  font-size: 30px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.chart-toolbar {
+  background: #071a31;
+  border: 1px solid #1d3556;
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+}
+
+.range-button {
+  background: transparent;
+  color: #94a9c6;
+  min-height: 30px;
+  padding: 0 12px;
+}
+
+.range-button.active,
+.range-button:hover {
+  background: #1e3a5f;
+  color: #ffffff;
+}
+
 .chart-search {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(140px, 1fr) auto auto auto;
-  min-width: min(100%, 680px);
+  grid-template-columns: minmax(130px, 1fr) auto auto auto auto;
+  margin-top: 16px;
 }
 
 .secondary-button {
@@ -276,7 +345,6 @@ canvas {
   display: flex;
 }
 
-.chart-stats,
 .chart-legend {
   color: #94a9c6;
   display: flex;
@@ -285,7 +353,6 @@ canvas {
   margin-top: 12px;
 }
 
-.chart-stats span,
 .chart-legend span {
   align-items: center;
   background: #0b2038;
@@ -295,6 +362,32 @@ canvas {
   font-size: 13px;
   gap: 7px;
   padding: 7px 10px;
+}
+
+.quote-board {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.quote-board div {
+  background: #071a31;
+  border: 1px solid #1d3556;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.quote-board span {
+  color: #94a9c6;
+  display: block;
+  font-size: 12px;
+}
+
+.quote-board strong {
+  display: block;
+  font-size: 18px;
+  margin-top: 4px;
 }
 
 .legend-line {
@@ -336,6 +429,48 @@ canvas {
 .switch-control input {
   accent-color: #38bdf8;
   min-height: auto;
+}
+
+.watchlist {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.watchlist-item {
+  background: #071a31;
+  border: 1px solid #1d3556;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+
+.watchlist-item:hover,
+.watchlist-item.active {
+  border-color: #38bdf8;
+}
+
+.watchlist-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.watchlist-symbol {
+  color: #e5edf7;
+  font-weight: 800;
+}
+
+.watchlist-price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.watchlist-meta {
+  color: #94a9c6;
+  font-size: 12px;
 }
 
 .control-panel,
@@ -429,6 +564,8 @@ pre {
   }
 
   .metrics,
+  .market-strip,
+  .market-workspace,
   .workspace,
   .data-grid {
     grid-template-columns: 1fr 1fr;
@@ -448,9 +585,12 @@ pre {
   }
 
   .metrics,
+  .market-strip,
+  .market-workspace,
   .workspace,
   .data-grid,
   .chart-search,
+  .quote-board,
   .form-grid,
   nav {
     grid-template-columns: 1fr;
