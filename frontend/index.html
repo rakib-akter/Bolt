@@ -45,21 +45,25 @@
             <span>Cash</span>
             <strong id="cash">$0.00</strong>
             <small id="broker">Broker: -</small>
+            <canvas class="mini-chart" id="cashSparkline" width="220" height="46"></canvas>
           </article>
           <article class="metric-card">
             <span>Total Equity</span>
             <strong id="equity">$0.00</strong>
             <small id="environment">Environment: -</small>
+            <canvas class="mini-chart" id="equitySparkline" width="220" height="46"></canvas>
           </article>
           <article class="metric-card">
             <span>Open Positions</span>
             <strong id="positions">0</strong>
             <small id="marketValue">Market value: $0.00</small>
+            <canvas class="mini-chart" id="positionsSparkline" width="220" height="46"></canvas>
           </article>
           <article class="metric-card">
             <span>Unrealized P/L</span>
             <strong id="unrealized">$0.00</strong>
             <small id="tradeCount">Trades: 0</small>
+            <canvas class="mini-chart" id="plSparkline" width="220" height="46"></canvas>
           </article>
         </section>
 
@@ -76,11 +80,26 @@
               </label>
               <button type="submit">Load Chart</button>
               <button id="seedCandlesButton" type="button" class="secondary-button">Add Demo Candles</button>
+              <label class="switch-control">
+                <input id="liveRefreshToggle" type="checkbox" checked />
+                <span>Live</span>
+              </label>
             </form>
+          </div>
+          <div class="chart-stats" aria-label="Chart stats">
+            <span id="chartLast">Last: -</span>
+            <span id="chartHigh">High: -</span>
+            <span id="chartLow">Low: -</span>
+            <span id="chartVolume">Volume: -</span>
           </div>
           <div class="chart-shell">
             <canvas id="priceChart" width="960" height="320" aria-label="Price chart"></canvas>
             <div id="chartEmpty" class="chart-empty">No candles yet for this symbol.</div>
+          </div>
+          <div class="chart-legend">
+            <span><i class="legend-line price-line"></i> Close</span>
+            <span><i class="legend-line ma-line"></i> 5-candle average</span>
+            <span><i class="legend-block volume-block"></i> Volume</span>
           </div>
         </section>
 

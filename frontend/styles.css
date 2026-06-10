@@ -202,6 +202,13 @@ label {
   color: #607080;
 }
 
+.mini-chart {
+  display: block;
+  height: 46px;
+  margin-top: 12px;
+  width: 100%;
+}
+
 .positive {
   color: #047857;
 }
@@ -226,8 +233,8 @@ label {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(140px, 1fr) auto auto;
-  min-width: min(100%, 520px);
+  grid-template-columns: minmax(140px, 1fr) auto auto auto;
+  min-width: min(100%, 680px);
 }
 
 .secondary-button {
@@ -239,10 +246,10 @@ label {
 }
 
 .chart-shell {
-  background: #f8fafc;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  height: 340px;
+  height: 380px;
   margin-top: 14px;
   position: relative;
 }
@@ -264,6 +271,68 @@ canvas {
 
 .chart-empty.visible {
   display: flex;
+}
+
+.chart-stats,
+.chart-legend {
+  color: #607080;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.chart-stats span,
+.chart-legend span {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 7px;
+  padding: 7px 10px;
+}
+
+.legend-line {
+  border-radius: 999px;
+  display: inline-block;
+  height: 3px;
+  width: 22px;
+}
+
+.price-line {
+  background: #0f766e;
+}
+
+.ma-line {
+  background: #7c3aed;
+}
+
+.legend-block {
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+
+.volume-block {
+  background: #94a3b8;
+}
+
+.switch-control {
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  color: #334155;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.switch-control input {
+  accent-color: #0f766e;
+  min-height: auto;
 }
 
 .control-panel,

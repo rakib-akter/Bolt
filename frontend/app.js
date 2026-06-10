@@ -22,9 +22,25 @@ const fields = {
   priceChart: document.querySelector("#priceChart"),
   chartEmpty: document.querySelector("#chartEmpty"),
   chartSummary: document.querySelector("#chartSummary"),
+  chartLast: document.querySelector("#chartLast"),
+  chartHigh: document.querySelector("#chartHigh"),
+  chartLow: document.querySelector("#chartLow"),
+  chartVolume: document.querySelector("#chartVolume"),
+  liveRefreshToggle: document.querySelector("#liveRefreshToggle"),
+  cashSparkline: document.querySelector("#cashSparkline"),
+  equitySparkline: document.querySelector("#equitySparkline"),
+  positionsSparkline: document.querySelector("#positionsSparkline"),
+  plSparkline: document.querySelector("#plSparkline"),
 };
 
 let activeChartSymbol = "AAPL";
+let liveRefreshTimer;
+const metricHistory = {
+  cash: [],
+  equity: [],
+  positions: [],
+  pl: [],
+};
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -133,8 +149,36 @@ function renderSellDecisions(decisions) {
     .join("");
 }
 
+function resizeCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+  canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+  return ratio;
+}
+
+function movingAverage(values, windowSize) {
+  return values.map((_, index) => {
+    const start = Math.max(0, index - windowSize + 1);
+    const window = values.slice(start, index + 1);
+    return window.reduce((total, value) => total + value, 0) / window.length;
+  });
+}
+
+function chartPoint(value, index, values, width, height, padding) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const xStep = values.length > 1 ? (width - padding * 2) / (values.length - 1) : 0;
+  return {
+    x: padding + xStep * index,
+    y: height - padding - ((value - min) / range) * (height - padding * 2),
+  };
+}
+
 function drawPriceChart(candles, symbol) {
   const canvas = fields.priceChart;
+  resizeCanvas(canvas);
   const context = canvas.getContext("2d");
   const width = canvas.width;
   const height = canvas.height;
@@ -143,16 +187,21 @@ function drawPriceChart(candles, symbol) {
   if (!candles.length) {
     fields.chartEmpty.classList.add("visible");
     fields.chartSummary.textContent = `${symbol}: no candles`;
+    fields.chartLast.textContent = "Last: -";
+    fields.chartHigh.textContent = "High: -";
+    fields.chartLow.textContent = "Low: -";
+    fields.chartVolume.textContent = "Volume: -";
     return;
   }
 
   fields.chartEmpty.classList.remove("visible");
-  const padding = 34;
+  const padding = 42;
   const closes = candles.map((candle) => Number(candle.close));
+  const volumes = candles.map((candle) => Number(candle.volume || 0));
   const minPrice = Math.min(...closes);
   const maxPrice = Math.max(...closes);
-  const range = maxPrice - minPrice || 1;
-  const xStep = candles.length > 1 ? (width - padding * 2) / (candles.length - 1) : 0;
+  const maValues = movingAverage(closes, 5);
+  const maxVolume = Math.max(...volumes, 1);
 
   context.strokeStyle = "#d8e0e8";
   context.lineWidth = 1;
@@ -164,12 +213,53 @@ function drawPriceChart(candles, symbol) {
   }
   context.stroke();
 
+  volumes.forEach((volume, index) => {
+    const barWidth = Math.max(3, (width - padding * 2) / Math.max(volumes.length, 1) - 4);
+    const x = padding + ((width - padding * 2) / Math.max(volumes.length, 1)) * index;
+    const barHeight = (volume / maxVolume) * 54;
+    context.fillStyle = "rgba(148, 163, 184, 0.34)";
+    context.fillRect(x, height - padding - barHeight, barWidth, barHeight);
+  });
+
+  const gradient = context.createLinearGradient(0, padding, 0, height - padding);
+  gradient.addColorStop(0, "rgba(15, 118, 110, 0.22)");
+  gradient.addColorStop(1, "rgba(15, 118, 110, 0.02)");
+
+  context.beginPath();
+  closes.forEach((close, index) => {
+    const point = chartPoint(close, index, closes, width, height, padding);
+    if (index === 0) {
+      context.moveTo(point.x, point.y);
+    } else {
+      context.lineTo(point.x, point.y);
+    }
+  });
+  const lastPoint = chartPoint(closes.at(-1), closes.length - 1, closes, width, height, padding);
+  const firstPoint = chartPoint(closes[0], 0, closes, width, height, padding);
+  context.lineTo(lastPoint.x, height - padding);
+  context.lineTo(firstPoint.x, height - padding);
+  context.closePath();
+  context.fillStyle = gradient;
+  context.fill();
+
   context.strokeStyle = "#0f766e";
   context.lineWidth = 3;
   context.beginPath();
   closes.forEach((close, index) => {
-    const x = padding + xStep * index;
-    const y = height - padding - ((close - minPrice) / range) * (height - padding * 2);
+    const { x, y } = chartPoint(close, index, closes, width, height, padding);
+    if (index === 0) {
+      context.moveTo(x, y);
+    } else {
+      context.lineTo(x, y);
+    }
+  });
+  context.stroke();
+
+  context.strokeStyle = "#7c3aed";
+  context.lineWidth = 2;
+  context.beginPath();
+  maValues.forEach((value, index) => {
+    const { x, y } = chartPoint(value, index, closes, width, height, padding);
     if (index === 0) {
       context.moveTo(x, y);
     } else {
@@ -179,25 +269,77 @@ function drawPriceChart(candles, symbol) {
   context.stroke();
 
   context.fillStyle = "#0f766e";
-  closes.forEach((close, index) => {
-    const x = padding + xStep * index;
-    const y = height - padding - ((close - minPrice) / range) * (height - padding * 2);
+  const markerStart = Math.max(0, closes.length - 8);
+  closes.slice(markerStart).forEach((close, offset) => {
+    const index = markerStart + offset;
+    const { x, y } = chartPoint(close, index, closes, width, height, padding);
     context.beginPath();
-    context.arc(x, y, 4, 0, Math.PI * 2);
+    context.arc(x, y, 4.5, 0, Math.PI * 2);
     context.fill();
   });
 
   context.fillStyle = "#334155";
-  context.font = "13px Segoe UI, Arial";
+  context.font = `${13 * (window.devicePixelRatio || 1)}px Segoe UI, Arial`;
   context.fillText(money(maxPrice), 8, padding + 4);
   context.fillText(money(minPrice), 8, height - padding + 4);
   fields.chartSummary.textContent = `${symbol}: ${candles.length} candles, last close ${money(closes.at(-1))}`;
+  fields.chartLast.textContent = `Last: ${money(closes.at(-1))}`;
+  fields.chartHigh.textContent = `High: ${money(maxPrice)}`;
+  fields.chartLow.textContent = `Low: ${money(minPrice)}`;
+  fields.chartVolume.textContent = `Volume: ${volumes.at(-1).toLocaleString()}`;
 }
 
 async function loadChart(symbol = activeChartSymbol) {
   activeChartSymbol = symbol.toUpperCase();
   const candles = await request(`/candles/${activeChartSymbol}`);
   drawPriceChart(candles, activeChartSymbol);
+}
+
+function pushMetric(history, value) {
+  history.push(Number(value || 0));
+  if (history.length > 28) {
+    history.shift();
+  }
+}
+
+function drawSparkline(canvas, values, color) {
+  resizeCanvas(canvas);
+  const context = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  context.clearRect(0, 0, width, height);
+  if (values.length < 2) {
+    return;
+  }
+  const padding = 6;
+  context.strokeStyle = color;
+  context.lineWidth = 2.5 * (window.devicePixelRatio || 1);
+  context.beginPath();
+  values.forEach((value, index) => {
+    const { x, y } = chartPoint(value, index, values, width, height, padding);
+    if (index === 0) {
+      context.moveTo(x, y);
+    } else {
+      context.lineTo(x, y);
+    }
+  });
+  context.stroke();
+}
+
+function renderMetricSparklines(portfolio, status) {
+  pushMetric(metricHistory.cash, portfolio.cash);
+  pushMetric(metricHistory.equity, portfolio.total_equity);
+  pushMetric(metricHistory.positions, status.position_count);
+  pushMetric(metricHistory.pl, portfolio.total_unrealized_pl);
+
+  drawSparkline(fields.cashSparkline, metricHistory.cash, "#0f766e");
+  drawSparkline(fields.equitySparkline, metricHistory.equity, "#2563eb");
+  drawSparkline(fields.positionsSparkline, metricHistory.positions, "#475569");
+  drawSparkline(
+    fields.plSparkline,
+    metricHistory.pl,
+    portfolio.total_unrealized_pl >= 0 ? "#047857" : "#b91c1c",
+  );
 }
 
 async function addDemoCandles(symbol) {
@@ -246,6 +388,7 @@ async function refreshDashboard() {
   renderPositions(portfolio.positions);
   renderTrades(trades);
   renderSellDecisions(sellDecisions);
+  renderMetricSparklines(portfolio, status);
   await loadChart(activeChartSymbol);
   setConnection("ok", "Connected");
   showActivity("Dashboard refreshed", { status, portfolio, trades, sellDecisions });
@@ -335,6 +478,34 @@ document.querySelector("#runForm").addEventListener("submit", async (event) => {
   }
 });
 
+function startLiveRefresh() {
+  clearInterval(liveRefreshTimer);
+  if (!fields.liveRefreshToggle.checked) {
+    return;
+  }
+  liveRefreshTimer = setInterval(() => {
+    refreshDashboard().catch((error) => {
+      setConnection("error", "Offline");
+      showActivity("Live refresh failed", { error: error.message });
+    });
+  }, 5000);
+}
+
+fields.liveRefreshToggle.addEventListener("change", () => {
+  startLiveRefresh();
+  showActivity(fields.liveRefreshToggle.checked ? "Live refresh on" : "Live refresh off", {
+    interval_seconds: 5,
+  });
+});
+
+window.addEventListener("resize", () => {
+  loadChart(activeChartSymbol).catch(() => undefined);
+  drawSparkline(fields.cashSparkline, metricHistory.cash, "#0f766e");
+  drawSparkline(fields.equitySparkline, metricHistory.equity, "#2563eb");
+  drawSparkline(fields.positionsSparkline, metricHistory.positions, "#475569");
+  drawSparkline(fields.plSparkline, metricHistory.pl, "#047857");
+});
+
 refreshDashboard().catch((error) => {
   setConnection("error", "Offline");
   showActivity("Backend unavailable", {
@@ -342,3 +513,4 @@ refreshDashboard().catch((error) => {
     hint: "Start the API with: python -m uvicorn trading_bot.app:app --reload",
   });
 });
+startLiveRefresh();
