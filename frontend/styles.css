@@ -1,8 +1,8 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
-  background: #eef2f6;
-  color: #16202a;
+  background: #061528;
+  color: #e5edf7;
 }
 
 * {
@@ -14,6 +14,9 @@ html {
 }
 
 body {
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.22), transparent 32rem),
+    #061528;
   margin: 0;
 }
 
@@ -24,7 +27,7 @@ body {
 }
 
 .sidebar {
-  background: #101820;
+  background: #07111f;
   color: #f8fafc;
   display: flex;
   flex-direction: column;
@@ -43,9 +46,9 @@ body {
 
 .brand-mark {
   align-items: center;
-  background: #2dd4bf;
+  background: #38bdf8;
   border-radius: 8px;
-  color: #10201e;
+  color: #04111f;
   display: inline-flex;
   font-weight: 800;
   height: 42px;
@@ -62,7 +65,7 @@ body {
 
 .brand small,
 .sidebar-note span {
-  color: #9fb0c3;
+  color: #8fa5c2;
   margin-top: 3px;
 }
 
@@ -73,19 +76,19 @@ nav {
 
 nav a {
   border-radius: 7px;
-  color: #d7e2ee;
+  color: #c9d7eb;
   padding: 10px 12px;
   text-decoration: none;
 }
 
 nav a.active,
 nav a:hover {
-  background: #1f2d3a;
+  background: #102542;
   color: #ffffff;
 }
 
 .sidebar-note {
-  border-top: 1px solid #263646;
+  border-top: 1px solid #1d3556;
   margin-top: auto;
   padding-top: 18px;
 }
@@ -109,7 +112,7 @@ nav a:hover {
 }
 
 .eyebrow {
-  color: #5b6b7a;
+  color: #8fa5c2;
   font-size: 13px;
   letter-spacing: 0;
   margin: 0 0 4px;
@@ -134,7 +137,7 @@ h2 {
 button {
   border: 0;
   border-radius: 7px;
-  background: #0f766e;
+  background: #2563eb;
   color: white;
   cursor: pointer;
   font-weight: 750;
@@ -143,7 +146,7 @@ button {
 }
 
 button:hover {
-  background: #115e59;
+  background: #1d4ed8;
 }
 
 .status-pill {
@@ -154,18 +157,18 @@ button:hover {
 }
 
 .status-pill.ok {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(20, 184, 166, 0.16);
+  color: #67e8f9;
 }
 
 .status-pill.warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
 }
 
 .status-pill.error {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(248, 113, 113, 0.16);
+  color: #fca5a5;
 }
 
 .metrics {
@@ -177,17 +180,17 @@ button:hover {
 
 .metric-card,
 .panel {
-  background: #ffffff;
-  border: 1px solid #d9e0e7;
+  background: rgba(10, 25, 47, 0.92);
+  border: 1px solid #1d3556;
   border-radius: 8px;
-  box-shadow: 0 10px 28px rgba(18, 31, 44, 0.06);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22);
   padding: 16px;
 }
 
 .metric-card span,
 .panel-heading span,
 label {
-  color: #607080;
+  color: #94a9c6;
   font-size: 13px;
 }
 
@@ -199,7 +202,7 @@ label {
 }
 
 .metric-card small {
-  color: #607080;
+  color: #94a9c6;
 }
 
 .mini-chart {
@@ -210,11 +213,11 @@ label {
 }
 
 .positive {
-  color: #047857;
+  color: #5eead4;
 }
 
 .negative {
-  color: #b91c1c;
+  color: #fca5a5;
 }
 
 .workspace,
@@ -238,16 +241,16 @@ label {
 }
 
 .secondary-button {
-  background: #334155;
+  background: #1e3a5f;
 }
 
 .secondary-button:hover {
-  background: #1f2937;
+  background: #274b78;
 }
 
 .chart-shell {
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #081a31 0%, #0b2038 100%);
+  border: 1px solid #1d3556;
   border-radius: 8px;
   height: 380px;
   margin-top: 14px;
@@ -262,7 +265,7 @@ canvas {
 
 .chart-empty {
   align-items: center;
-  color: #607080;
+  color: #94a9c6;
   display: none;
   inset: 0;
   justify-content: center;
@@ -275,7 +278,7 @@ canvas {
 
 .chart-stats,
 .chart-legend {
-  color: #607080;
+  color: #94a9c6;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -285,8 +288,8 @@ canvas {
 .chart-stats span,
 .chart-legend span {
   align-items: center;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #0b2038;
+  border: 1px solid #1d3556;
   border-radius: 999px;
   display: inline-flex;
   font-size: 13px;
@@ -302,11 +305,11 @@ canvas {
 }
 
 .price-line {
-  background: #0f766e;
+  background: #38bdf8;
 }
 
 .ma-line {
-  background: #7c3aed;
+  background: #a78bfa;
 }
 
 .legend-block {
@@ -316,14 +319,14 @@ canvas {
 }
 
 .volume-block {
-  background: #94a3b8;
+  background: #3b82f6;
 }
 
 .switch-control {
   align-items: center;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #1d3556;
   border-radius: 999px;
-  color: #334155;
+  color: #c9d7eb;
   display: inline-flex;
   gap: 8px;
   min-height: 42px;
@@ -331,7 +334,7 @@ canvas {
 }
 
 .switch-control input {
-  accent-color: #0f766e;
+  accent-color: #38bdf8;
   min-height: auto;
 }
 
@@ -353,16 +356,18 @@ label {
 }
 
 input {
-  border: 1px solid #cbd5e1;
+  background: #071a31;
+  border: 1px solid #24466f;
   border-radius: 7px;
+  color: #e5edf7;
   font-size: 15px;
   min-height: 40px;
   padding: 8px 10px;
 }
 
 input:focus {
-  border-color: #0f766e;
-  outline: 2px solid rgba(15, 118, 110, 0.18);
+  border-color: #38bdf8;
+  outline: 2px solid rgba(56, 189, 248, 0.22);
 }
 
 .table-wrap {
@@ -378,14 +383,14 @@ table {
 
 th,
 td {
-  border-bottom: 1px solid #edf1f5;
+  border-bottom: 1px solid #173152;
   padding: 10px 8px;
   text-align: left;
   white-space: nowrap;
 }
 
 th {
-  color: #607080;
+  color: #94a9c6;
   font-size: 12px;
   text-transform: uppercase;
 }
@@ -399,7 +404,7 @@ td {
 }
 
 pre {
-  background: #111827;
+  background: #04101f;
   border-radius: 7px;
   color: #f8fafc;
   margin: 12px 0 0;

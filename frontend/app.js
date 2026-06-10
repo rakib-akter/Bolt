@@ -203,7 +203,7 @@ function drawPriceChart(candles, symbol) {
   const maValues = movingAverage(closes, 5);
   const maxVolume = Math.max(...volumes, 1);
 
-  context.strokeStyle = "#d8e0e8";
+  context.strokeStyle = "#1d3556";
   context.lineWidth = 1;
   context.beginPath();
   for (let index = 0; index < 4; index += 1) {
@@ -217,13 +217,13 @@ function drawPriceChart(candles, symbol) {
     const barWidth = Math.max(3, (width - padding * 2) / Math.max(volumes.length, 1) - 4);
     const x = padding + ((width - padding * 2) / Math.max(volumes.length, 1)) * index;
     const barHeight = (volume / maxVolume) * 54;
-    context.fillStyle = "rgba(148, 163, 184, 0.34)";
+    context.fillStyle = "rgba(59, 130, 246, 0.28)";
     context.fillRect(x, height - padding - barHeight, barWidth, barHeight);
   });
 
   const gradient = context.createLinearGradient(0, padding, 0, height - padding);
-  gradient.addColorStop(0, "rgba(15, 118, 110, 0.22)");
-  gradient.addColorStop(1, "rgba(15, 118, 110, 0.02)");
+  gradient.addColorStop(0, "rgba(56, 189, 248, 0.24)");
+  gradient.addColorStop(1, "rgba(56, 189, 248, 0.03)");
 
   context.beginPath();
   closes.forEach((close, index) => {
@@ -242,7 +242,7 @@ function drawPriceChart(candles, symbol) {
   context.fillStyle = gradient;
   context.fill();
 
-  context.strokeStyle = "#0f766e";
+  context.strokeStyle = "#38bdf8";
   context.lineWidth = 3;
   context.beginPath();
   closes.forEach((close, index) => {
@@ -255,7 +255,7 @@ function drawPriceChart(candles, symbol) {
   });
   context.stroke();
 
-  context.strokeStyle = "#7c3aed";
+  context.strokeStyle = "#a78bfa";
   context.lineWidth = 2;
   context.beginPath();
   maValues.forEach((value, index) => {
@@ -268,7 +268,7 @@ function drawPriceChart(candles, symbol) {
   });
   context.stroke();
 
-  context.fillStyle = "#0f766e";
+  context.fillStyle = "#38bdf8";
   const markerStart = Math.max(0, closes.length - 8);
   closes.slice(markerStart).forEach((close, offset) => {
     const index = markerStart + offset;
@@ -278,7 +278,7 @@ function drawPriceChart(candles, symbol) {
     context.fill();
   });
 
-  context.fillStyle = "#334155";
+  context.fillStyle = "#c9d7eb";
   context.font = `${13 * (window.devicePixelRatio || 1)}px Segoe UI, Arial`;
   context.fillText(money(maxPrice), 8, padding + 4);
   context.fillText(money(minPrice), 8, height - padding + 4);
@@ -332,13 +332,13 @@ function renderMetricSparklines(portfolio, status) {
   pushMetric(metricHistory.positions, status.position_count);
   pushMetric(metricHistory.pl, portfolio.total_unrealized_pl);
 
-  drawSparkline(fields.cashSparkline, metricHistory.cash, "#0f766e");
-  drawSparkline(fields.equitySparkline, metricHistory.equity, "#2563eb");
-  drawSparkline(fields.positionsSparkline, metricHistory.positions, "#475569");
+  drawSparkline(fields.cashSparkline, metricHistory.cash, "#38bdf8");
+  drawSparkline(fields.equitySparkline, metricHistory.equity, "#60a5fa");
+  drawSparkline(fields.positionsSparkline, metricHistory.positions, "#93c5fd");
   drawSparkline(
     fields.plSparkline,
     metricHistory.pl,
-    portfolio.total_unrealized_pl >= 0 ? "#047857" : "#b91c1c",
+    portfolio.total_unrealized_pl >= 0 ? "#5eead4" : "#fca5a5",
   );
 }
 
@@ -500,10 +500,10 @@ fields.liveRefreshToggle.addEventListener("change", () => {
 
 window.addEventListener("resize", () => {
   loadChart(activeChartSymbol).catch(() => undefined);
-  drawSparkline(fields.cashSparkline, metricHistory.cash, "#0f766e");
-  drawSparkline(fields.equitySparkline, metricHistory.equity, "#2563eb");
-  drawSparkline(fields.positionsSparkline, metricHistory.positions, "#475569");
-  drawSparkline(fields.plSparkline, metricHistory.pl, "#047857");
+  drawSparkline(fields.cashSparkline, metricHistory.cash, "#38bdf8");
+  drawSparkline(fields.equitySparkline, metricHistory.equity, "#60a5fa");
+  drawSparkline(fields.positionsSparkline, metricHistory.positions, "#93c5fd");
+  drawSparkline(fields.plSparkline, metricHistory.pl, "#5eead4");
 });
 
 refreshDashboard().catch((error) => {
