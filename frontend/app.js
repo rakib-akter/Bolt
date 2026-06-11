@@ -55,9 +55,17 @@ let liveRefreshTimer;
 let liveMarketTimer;
 let autopilotTimer;
 let activeChartRange = "all";
+let activeChartTimeframe = "1m";
 let latestCandles = [];
 const localCandleCache = new Map();
 const watchlistSymbols = ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"];
+const timeframeConfig = {
+  "1m": { label: "1m", ms: 60_000, count: 64 },
+  "5m": { label: "5m", ms: 5 * 60_000, count: 64 },
+  "15m": { label: "15m", ms: 15 * 60_000, count: 64 },
+  "1h": { label: "1h", ms: 60 * 60_000, count: 72 },
+  "1d": { label: "1d", ms: 24 * 60 * 60_000, count: 90 },
+};
 const metricHistory = {
   cash: [],
   equity: [],
@@ -227,13 +235,22 @@ function symbolSeed(symbol) {
   return symbol.split("").reduce((total, letter) => total + letter.charCodeAt(0), 0);
 }
 
-function generateDemoCandles(symbol, count = 64) {
+function candleCacheKey(symbol, timeframe = activeChartTimeframe) {
+  return `${symbol.toUpperCase()}::${timeframe}`;
+}
+
+function activeTimeframe() {
+  return timeframeConfig[activeChartTimeframe] || timeframeConfig["1m"];
+}
+
+function generateDemoCandles(symbol, timeframe = activeChartTimeframe) {
+  const config = timeframeConfig[timeframe] || timeframeConfig["1m"];
   const seed = symbolSeed(symbol);
   let price = 80 + (seed % 90);
   const now = Date.now();
   const candles = [];
 
-  for (let index = 0; index < count; index += 1) {
+  for (let index = 0; index < config.count; index += 1) {
     const wave = Math.sin((index + seed) / 4) * 1.7;
     const drift = Math.cos((index + seed) / 9) * 0.8;
     const open = price;
@@ -243,7 +260,7 @@ function generateDemoCandles(symbol, count = 64) {
     price = close;
     candles.push({
       symbol,
-      timestamp: new Date(now - (count - index) * 60_000).toISOString(),
+      timestamp: new Date(now - (config.count - index) * config.ms).toISOString(),
       open,
       high,
       low,
@@ -257,20 +274,21 @@ function generateDemoCandles(symbol, count = 64) {
 
 async function loadCandles(symbol) {
   const normalizedSymbol = symbol.toUpperCase();
+  const key = candleCacheKey(normalizedSymbol);
   try {
     const candles = await request(`/candles/${normalizedSymbol}`);
-    if (candles.length) {
-      localCandleCache.set(normalizedSymbol, candles);
+    if (candles.length && activeChartTimeframe === "1m") {
+      localCandleCache.set(key, candles);
       return candles;
     }
   } catch (error) {
     setConnection("warning", "Demo chart");
   }
 
-  if (!localCandleCache.has(normalizedSymbol)) {
-    localCandleCache.set(normalizedSymbol, generateDemoCandles(normalizedSymbol));
+  if (!localCandleCache.has(key)) {
+    localCandleCache.set(key, generateDemoCandles(normalizedSymbol));
   }
-  return localCandleCache.get(normalizedSymbol);
+  return localCandleCache.get(key);
 }
 
 async function renderWatchlist() {
@@ -334,6 +352,17 @@ function chartPoint(value, index, values, width, height, padding) {
 function priceY(value, min, max, height, padding) {
   const range = max - min || 1;
   return height - padding - ((value - min) / range) * (height - padding * 2);
+}
+
+function formatTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  if (activeChartTimeframe === "1d") {
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 function drawPriceChart(candles, symbol) {
@@ -451,8 +480,22 @@ function drawPriceChart(candles, symbol) {
   context.font = `${13 * (window.devicePixelRatio || 1)}px Segoe UI, Arial`;
   context.fillText(money(maxPrice), 8, padding + 4);
   context.fillText(money(minPrice), 8, height - padding + 4);
+
+  const labelIndexes = [0, Math.floor((displayCandles.length - 1) / 2), displayCandles.length - 1];
+  context.fillStyle = "#94a9c6";
+  context.font = `${12 * (window.devicePixelRatio || 1)}px Segoe UI, Arial`;
+  labelIndexes.forEach((index) => {
+    const candle = displayCandles[index];
+    if (!candle) {
+      return;
+    }
+    const x = padding + candleSlot * index + candleSlot / 2;
+    const label = formatTimestamp(candle.timestamp);
+    context.fillText(label, Math.min(x, width - padding - 56), height - 18);
+  });
+
   fields.chartTitle.textContent = symbol;
-  fields.chartSummary.textContent = `${displayCandles.length}/${candles.length} candles shown`;
+  fields.chartSummary.textContent = `${displayCandles.length}/${candles.length} candles | ${activeTimeframe().label} interval`;
   fields.chartLast.textContent = money(closes.at(-1));
   fields.chartHigh.textContent = money(maxPrice);
   fields.chartLow.textContent = money(minPrice);
@@ -514,8 +557,8 @@ function renderMetricSparklines(portfolio, status) {
 
 async function addDemoCandles(symbol) {
   const normalizedSymbol = symbol.toUpperCase();
-  const candles = generateDemoCandles(normalizedSymbol);
-  localCandleCache.set(normalizedSymbol, candles);
+  const candles = generateDemoCandles(normalizedSymbol, activeChartTimeframe);
+  localCandleCache.set(candleCacheKey(normalizedSymbol), candles);
 
   for (const candle of candles.slice(-24)) {
     try {
@@ -533,6 +576,10 @@ async function addDemoCandles(symbol) {
 async function addLiveTick(symbol) {
   const candles = await loadCandles(symbol);
   const previous = candles.length ? Number(candles.at(-1).close) : 100 + Math.random() * 12;
+  const previousTimestamp = candles.length
+    ? new Date(candles.at(-1).timestamp).getTime()
+    : Date.now();
+  const nextTimestamp = previousTimestamp + activeTimeframe().ms;
   const move = (Math.random() - 0.48) * 2.1;
   const open = previous;
   const close = Math.max(1, previous + move);
@@ -540,7 +587,7 @@ async function addLiveTick(symbol) {
   const low = Math.max(0.01, Math.min(open, close) - Math.random() * 0.75);
   const candle = {
     symbol: symbol.toUpperCase(),
-    timestamp: new Date().toISOString(),
+    timestamp: new Date(nextTimestamp).toISOString(),
     open,
     high,
     low,
@@ -548,7 +595,7 @@ async function addLiveTick(symbol) {
     volume: 1200 + Math.round(Math.random() * 1800),
   };
   const updatedCandles = [...candles, candle].slice(-120);
-  localCandleCache.set(candle.symbol, updatedCandles);
+  localCandleCache.set(candleCacheKey(candle.symbol), updatedCandles);
 
   try {
     await request("/candles", {
@@ -659,6 +706,19 @@ document.querySelectorAll(".range-button").forEach((button) => {
     button.classList.add("active");
     activeChartRange = button.dataset.range;
     drawPriceChart(latestCandles, activeChartSymbol);
+  });
+});
+
+document.querySelectorAll(".timeframe-button").forEach((button) => {
+  button.addEventListener("click", async () => {
+    document.querySelectorAll(".timeframe-button").forEach((item) => item.classList.remove("active"));
+    button.classList.add("active");
+    activeChartTimeframe = button.dataset.timeframe;
+    await loadChart(activeChartSymbol);
+    await renderWatchlist();
+    showActivity("Chart interval changed", {
+      interval: activeTimeframe().label,
+    });
   });
 });
 
@@ -849,7 +909,7 @@ fields.liveMarketToggle.addEventListener("change", () => {
   startLiveMarket();
   showActivity(fields.liveMarketToggle.checked ? "Simulated ticks on" : "Simulated ticks off", {
     symbol: activeChartSymbol,
-    interval_seconds: 2.5,
+    chart_interval: activeTimeframe().label,
   });
 });
 
