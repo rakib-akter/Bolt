@@ -65,6 +65,32 @@
           </article>
         </section>
 
+        <section class="paper-launch" aria-label="Paper trading launch">
+          <article class="panel launch-panel">
+            <div>
+              <p class="eyebrow">Fake money workspace</p>
+              <h2>Paper Trading Launch</h2>
+              <span id="paperSetupStatus">Set up fake cash, demo candles, and paper autopilot in one click.</span>
+            </div>
+            <div class="launch-controls">
+              <label>
+                Fake cash
+                <input id="paperCashInput" type="number" min="1000" step="1000" value="10000" />
+              </label>
+              <label>
+                Symbols
+                <input id="paperSymbolsInput" value="AAPL,MSFT,NVDA,TSLA,SPY" />
+              </label>
+              <button id="setupPaperButton" type="button">Prepare Paper Bot</button>
+            </div>
+            <div class="launch-readiness">
+              <span><strong>Mode</strong><b id="paperModeLabel">Paper only</b></span>
+              <span><strong>Broker</strong><b id="paperBrokerLabel">Fake orders</b></span>
+              <span><strong>Live ready</strong><b id="liveReadyLabel">Not connected</b></span>
+            </div>
+          </article>
+        </section>
+
         <section class="metrics" aria-label="Portfolio metrics">
           <article class="metric-card">
             <span>Cash</span>

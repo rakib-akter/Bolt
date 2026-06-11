@@ -11,6 +11,12 @@ const fields = {
   tradeCount: document.querySelector("#tradeCount"),
   connectionBadge: document.querySelector("#connectionBadge"),
   notification: document.querySelector("#notification"),
+  paperSetupStatus: document.querySelector("#paperSetupStatus"),
+  paperCashInput: document.querySelector("#paperCashInput"),
+  paperSymbolsInput: document.querySelector("#paperSymbolsInput"),
+  paperModeLabel: document.querySelector("#paperModeLabel"),
+  paperBrokerLabel: document.querySelector("#paperBrokerLabel"),
+  liveReadyLabel: document.querySelector("#liveReadyLabel"),
   autopilotStatus: document.querySelector("#autopilotStatus"),
   autopilotMode: document.querySelector("#autopilotMode"),
   autopilotLastAction: document.querySelector("#autopilotLastAction"),
@@ -99,6 +105,13 @@ function showActivity(label, value) {
 function setConnection(state, message) {
   fields.connectionBadge.className = `status-pill ${state}`;
   fields.connectionBadge.textContent = message;
+}
+
+function paperSymbols() {
+  return fields.paperSymbolsInput.value
+    .split(",")
+    .map((symbol) => symbol.trim().toUpperCase())
+    .filter(Boolean);
 }
 
 async function request(path, options = {}) {
@@ -677,6 +690,9 @@ async function refreshDashboard() {
   fields.environment.textContent = `Environment: ${status.environment}`;
   fields.broker.textContent = `Broker: ${status.broker}`;
   fields.sidebarMode.textContent = status.environment;
+  fields.paperModeLabel.textContent = status.environment === "paper" ? "Paper only" : status.environment;
+  fields.paperBrokerLabel.textContent = status.broker === "paper" ? "Fake orders" : status.broker;
+  fields.liveReadyLabel.textContent = status.broker === "paper" ? "Not connected" : "Broker connected";
   fields.cash.textContent = money(portfolio.cash);
   fields.equity.textContent = money(portfolio.total_equity);
   fields.positions.textContent = status.position_count;
@@ -703,6 +719,30 @@ document.querySelector("#refreshButton").addEventListener("click", () => {
     setConnection("error", "Offline");
     showActivity("Refresh failed", { error: error.message });
   });
+});
+
+document.querySelector("#setupPaperButton").addEventListener("click", async () => {
+  try {
+    const payload = {
+      symbols: paperSymbols(),
+      starting_cash: Number(fields.paperCashInput.value),
+      candles_per_symbol: 80,
+      reset_trades: true,
+    };
+    const result = await request("/paper/setup", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    fields.paperSetupStatus.textContent = result.message;
+    activeChartSymbol = result.symbols[0] || activeChartSymbol;
+    document.querySelector("#symbolSearchForm input[name='symbol']").value = activeChartSymbol;
+    localCandleCache.clear();
+    await refreshDashboard();
+    showActivity("Paper bot ready", result);
+  } catch (error) {
+    fields.paperSetupStatus.textContent = error.message;
+    showActivity("Paper setup failed", { error: error.message });
+  }
 });
 
 document.querySelector("#candleForm").addEventListener("submit", async (event) => {
