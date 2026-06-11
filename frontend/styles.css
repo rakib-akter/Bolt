@@ -154,7 +154,7 @@ nav a:hover {
   align-items: end;
   display: grid;
   gap: 12px;
-  grid-template-columns: 150px minmax(180px, 1fr) auto;
+  grid-template-columns: 140px minmax(180px, 1fr) 120px auto;
 }
 
 .launch-readiness {
@@ -474,6 +474,12 @@ label {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.compare-results {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .backtest-results div {
   background: #0f1725;
   border: 1px solid #222b3a;
@@ -484,15 +490,41 @@ label {
   padding: 12px;
 }
 
+.compare-results div {
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  min-height: 104px;
+  padding: 14px;
+}
+
 .backtest-results span {
   color: #94a9c6;
   font-size: 12px;
   text-transform: uppercase;
 }
 
+.compare-results span {
+  color: #94a9c6;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .backtest-results strong {
   color: #e5edf7;
   font-size: 18px;
+}
+
+.compare-results strong {
+  color: #e5edf7;
+  font-size: 28px;
+}
+
+.compare-results small {
+  color: #94a9c6;
 }
 
 .chart-panel {
@@ -951,6 +983,7 @@ td {
   .strategy-stats,
   .strategy-columns,
   .backtest-results,
+  .compare-results,
   .chart-search,
   .quote-board,
   .form-grid,

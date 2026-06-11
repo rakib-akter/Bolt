@@ -81,6 +81,10 @@
                 Symbols
                 <input id="paperSymbolsInput" value="AAPL,MSFT,NVDA,TSLA,SPY" />
               </label>
+              <label>
+                Max tickers
+                <input id="paperMaxTickersInput" type="number" min="1" step="1" value="3" />
+              </label>
               <button id="setupPaperButton" type="button">Prepare Paper Bot</button>
             </div>
             <div class="launch-readiness">
@@ -234,6 +238,10 @@
             </div>
             <div class="autopilot-rules">
               <label>
+                Max active tickers
+                <input id="maxActiveTickersInput" type="number" min="1" step="1" value="3" />
+              </label>
+              <label>
                 Stop loss %
                 <input id="stopLossPercent" type="number" min="0.1" step="0.1" value="5" />
               </label>
@@ -242,6 +250,7 @@
                 <input id="takeProfitPercent" type="number" min="0.1" step="0.1" value="10" />
               </label>
               <button id="saveAutopilotConfigButton" type="button" class="secondary-button">Save Sell Rules</button>
+              <button id="saveUniverseButton" type="button" class="secondary-button">Save Ticker Limit</button>
             </div>
             <div class="autopilot-actions">
               <button id="startAutopilotButton" type="button">Start Paper Autopilot</button>
@@ -353,6 +362,48 @@
               <div><span>Win rate</span><strong id="backtestWinRate">-</strong></div>
             </div>
             <button type="submit">Run Backtest</button>
+          </form>
+
+          <form id="compareForm" class="panel control-panel compare-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Compare Ticker PnL</h2>
+                <span id="compareSummary">Backtest two tickers with the same strategy.</span>
+              </div>
+              <span id="compareWinner" class="status-pill warning">Waiting</span>
+            </div>
+            <div class="form-grid">
+              <label>
+                First ticker
+                <input name="first_symbol" value="AAPL" required />
+              </label>
+              <label>
+                Second ticker
+                <input name="second_symbol" value="MSFT" required />
+              </label>
+              <label>
+                Strategy
+                <select name="strategy_id">
+                  <option value="moving_average">Moving Average Trend</option>
+                  <option value="momentum">Momentum Burst</option>
+                  <option value="breakout">Breakout</option>
+                  <option value="rsi_reversion">RSI Mean Reversion</option>
+                </select>
+              </label>
+            </div>
+            <div class="compare-results" aria-label="Ticker PnL comparison">
+              <div>
+                <span id="compareFirstSymbol">AAPL</span>
+                <strong id="compareFirstPnl">-</strong>
+                <small id="compareFirstStats">No result</small>
+              </div>
+              <div>
+                <span id="compareSecondSymbol">MSFT</span>
+                <strong id="compareSecondPnl">-</strong>
+                <small id="compareSecondStats">No result</small>
+              </div>
+            </div>
+            <button type="submit">Compare PnL</button>
           </form>
         </section>
 

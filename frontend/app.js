@@ -14,6 +14,7 @@ const fields = {
   paperSetupStatus: document.querySelector("#paperSetupStatus"),
   paperCashInput: document.querySelector("#paperCashInput"),
   paperSymbolsInput: document.querySelector("#paperSymbolsInput"),
+  paperMaxTickersInput: document.querySelector("#paperMaxTickersInput"),
   paperModeLabel: document.querySelector("#paperModeLabel"),
   paperBrokerLabel: document.querySelector("#paperBrokerLabel"),
   liveReadyLabel: document.querySelector("#liveReadyLabel"),
@@ -22,6 +23,7 @@ const fields = {
   autopilotLastAction: document.querySelector("#autopilotLastAction"),
   autoSellSummary: document.querySelector("#autoSellSummary"),
   autoSellToggle: document.querySelector("#autoSellToggle"),
+  maxActiveTickersInput: document.querySelector("#maxActiveTickersInput"),
   stopLossPercent: document.querySelector("#stopLossPercent"),
   takeProfitPercent: document.querySelector("#takeProfitPercent"),
   backtestSummary: document.querySelector("#backtestSummary"),
@@ -34,6 +36,14 @@ const fields = {
   selectedStrategyBadge: document.querySelector("#selectedStrategyBadge"),
   strategyList: document.querySelector("#strategyList"),
   backtestStrategySelect: document.querySelector("#backtestStrategySelect"),
+  compareSummary: document.querySelector("#compareSummary"),
+  compareWinner: document.querySelector("#compareWinner"),
+  compareFirstSymbol: document.querySelector("#compareFirstSymbol"),
+  compareFirstPnl: document.querySelector("#compareFirstPnl"),
+  compareFirstStats: document.querySelector("#compareFirstStats"),
+  compareSecondSymbol: document.querySelector("#compareSecondSymbol"),
+  compareSecondPnl: document.querySelector("#compareSecondPnl"),
+  compareSecondStats: document.querySelector("#compareSecondStats"),
   sidebarMode: document.querySelector("#sidebarMode"),
   positionSummary: document.querySelector("#positionSummary"),
   lastUpdated: document.querySelector("#lastUpdated"),
@@ -68,7 +78,7 @@ let activeChartRange = "all";
 let activeChartTimeframe = "1m";
 let latestCandles = [];
 const localCandleCache = new Map();
-const watchlistSymbols = ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"];
+let watchlistSymbols = ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"];
 const timeframeConfig = {
   "1m": { label: "1m", ms: 60_000, count: 64 },
   "5m": { label: "5m", ms: 5 * 60_000, count: 64 },
@@ -211,6 +221,8 @@ function renderAutopilot(state) {
   fields.autopilotMode.textContent = enabled ? "Auto Paper" : "Manual";
   fields.autopilotMode.className = `status-pill ${enabled ? "ok" : "warning"}`;
   fields.autoSellToggle.checked = autoSellEnabled;
+  fields.maxActiveTickersInput.value = state.max_active_symbols || 1;
+  fields.paperMaxTickersInput.value = state.max_active_symbols || fields.paperMaxTickersInput.value;
   fields.stopLossPercent.value = stopLossPercent.toFixed(1).replace(".0", "");
   fields.takeProfitPercent.value = takeProfitPercent.toFixed(1).replace(".0", "");
   fields.autoSellSummary.textContent = autoSellEnabled
@@ -230,6 +242,29 @@ function renderBacktestResult(result) {
   fields.backtestVerdict.className = `status-pill ${result.is_profitable ? "ok" : "error"}`;
   fields.backtestSummary.textContent =
     `${result.trade_count} trade(s), ${money(result.pnl)} total PnL`;
+}
+
+function renderCompareResult(result) {
+  const firstPnl = Number(result.first.pnl_percent);
+  const secondPnl = Number(result.second.pnl_percent);
+  const firstClass = firstPnl >= 0 ? "positive" : "negative";
+  const secondClass = secondPnl >= 0 ? "positive" : "negative";
+
+  fields.compareFirstSymbol.textContent = result.first.symbol;
+  fields.compareFirstPnl.textContent = `${firstPnl.toFixed(2)}%`;
+  fields.compareFirstPnl.className = firstClass;
+  fields.compareFirstStats.textContent =
+    `${result.first.trade_count} trade(s), ${money(result.first.pnl)} PnL`;
+
+  fields.compareSecondSymbol.textContent = result.second.symbol;
+  fields.compareSecondPnl.textContent = `${secondPnl.toFixed(2)}%`;
+  fields.compareSecondPnl.className = secondClass;
+  fields.compareSecondStats.textContent =
+    `${result.second.trade_count} trade(s), ${money(result.second.pnl)} PnL`;
+
+  fields.compareWinner.textContent = result.winner === "tie" ? "Tie" : `${result.winner} leads`;
+  fields.compareWinner.className = `status-pill ${result.winner === "tie" ? "warning" : "ok"}`;
+  fields.compareSummary.textContent = `PnL gap: ${Number(result.pnl_gap_percent).toFixed(2)}%`;
 }
 
 function percent(value) {
@@ -706,6 +741,8 @@ async function refreshDashboard() {
   renderTrades(trades);
   renderSellDecisions(sellDecisions);
   renderAutopilot(autopilot);
+  watchlistSymbols = autopilot.symbols?.length ? autopilot.symbols : watchlistSymbols;
+  fields.paperSymbolsInput.value = watchlistSymbols.join(",");
   renderStrategies(strategies);
   renderMetricSparklines(portfolio, status);
   await loadChart(activeChartSymbol);
@@ -725,6 +762,7 @@ document.querySelector("#setupPaperButton").addEventListener("click", async () =
   try {
     const payload = {
       symbols: paperSymbols(),
+      max_active_symbols: Number(fields.paperMaxTickersInput.value),
       starting_cash: Number(fields.paperCashInput.value),
       candles_per_symbol: 80,
       reset_trades: true,
@@ -734,6 +772,7 @@ document.querySelector("#setupPaperButton").addEventListener("click", async () =
       body: JSON.stringify(payload),
     });
     fields.paperSetupStatus.textContent = result.message;
+    watchlistSymbols = result.symbols;
     activeChartSymbol = result.symbols[0] || activeChartSymbol;
     document.querySelector("#symbolSearchForm input[name='symbol']").value = activeChartSymbol;
     localCandleCache.clear();
@@ -938,6 +977,44 @@ document.querySelector("#saveAutopilotConfigButton").addEventListener("click", a
   }
 });
 
+document.querySelector("#saveUniverseButton").addEventListener("click", async () => {
+  try {
+    const state = await request("/autopilot/universe", {
+      method: "POST",
+      body: JSON.stringify({
+        symbols: paperSymbols(),
+        max_active_symbols: Number(fields.maxActiveTickersInput.value),
+      }),
+    });
+    renderAutopilot(state);
+    showActivity("Ticker limit saved", state);
+  } catch (error) {
+    showActivity("Ticker limit failed", { error: error.message });
+  }
+});
+
+document.querySelector("#compareForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  try {
+    const result = await request("/backtest/compare", {
+      method: "POST",
+      body: JSON.stringify({
+        first_symbol: String(form.get("first_symbol")).toUpperCase(),
+        second_symbol: String(form.get("second_symbol")).toUpperCase(),
+        strategy_id: String(form.get("strategy_id")),
+      }),
+    });
+    renderCompareResult(result);
+    showActivity("PnL comparison complete", result);
+  } catch (error) {
+    fields.compareWinner.textContent = "No Result";
+    fields.compareWinner.className = "status-pill error";
+    fields.compareSummary.textContent = error.message;
+    showActivity("PnL comparison failed", { error: error.message });
+  }
+});
+
 function startAutopilotTimer() {
   clearInterval(autopilotTimer);
   autopilotTimer = setInterval(() => {
@@ -954,10 +1031,19 @@ function stopAutopilotTimer() {
 
 document.querySelector("#startAutopilotButton").addEventListener("click", async () => {
   try {
+    const symbols = paperSymbols();
+    await request("/autopilot/universe", {
+      method: "POST",
+      body: JSON.stringify({
+        symbols,
+        max_active_symbols: Number(fields.maxActiveTickersInput.value),
+      }),
+    });
     const state = await request("/autopilot/start", {
       method: "POST",
-      body: JSON.stringify({ symbols: watchlistSymbols }),
+      body: JSON.stringify({ symbols }),
     });
+    watchlistSymbols = state.symbols;
     renderAutopilot(state);
     startAutopilotTimer();
     showActivity("Paper autopilot started", state);
