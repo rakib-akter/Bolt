@@ -354,6 +354,68 @@ label {
   gap: 10px;
 }
 
+.strategy-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.strategy-list {
+  display: grid;
+  gap: 12px;
+}
+
+.strategy-card {
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.strategy-card.selected {
+  border-color: #2962ff;
+}
+
+.strategy-card-head,
+.strategy-stats,
+.strategy-columns {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.strategy-card strong,
+.strategy-card b {
+  color: #e5edf7;
+}
+
+.strategy-card-head span,
+.strategy-stats span,
+.strategy-card li {
+  color: #94a9c6;
+  font-size: 13px;
+}
+
+.strategy-rate {
+  background: rgba(41, 98, 255, 0.15);
+  border: 1px solid rgba(41, 98, 255, 0.42);
+  border-radius: 999px;
+  color: #8ab4ff;
+  font-weight: 800;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.strategy-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.strategy-card ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+}
+
 .backtest-results {
   display: grid;
   gap: 10px;
@@ -713,7 +775,8 @@ label {
   gap: 6px;
 }
 
-input {
+input,
+select {
   background: #0f1725;
   border: 1px solid #2f3b52;
   border-radius: 5px;
@@ -723,7 +786,8 @@ input {
   padding: 8px 10px;
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: #2962ff;
   outline: 2px solid rgba(41, 98, 255, 0.22);
 }
@@ -800,6 +864,8 @@ td {
   .data-grid,
   .autopilot-flow,
   .autopilot-rules,
+  .strategy-card-head,
+  .strategy-stats,
   .backtest-results {
     grid-template-columns: 1fr 1fr;
   }
@@ -824,6 +890,9 @@ td {
   .data-grid,
   .autopilot-flow,
   .autopilot-rules,
+  .strategy-card-head,
+  .strategy-stats,
+  .strategy-columns,
   .backtest-results,
   .chart-search,
   .quote-board,

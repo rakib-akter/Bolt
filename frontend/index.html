@@ -171,6 +171,17 @@
         </section>
 
         <section class="workspace" id="controls">
+          <article class="panel strategy-panel" id="strategies">
+            <div class="panel-heading">
+              <div>
+                <h2>Strategy Models</h2>
+                <span id="strategySummary">Choose what paper autopilot should trade with</span>
+              </div>
+              <span id="selectedStrategyBadge" class="status-pill warning">Loading</span>
+            </div>
+            <div id="strategyList" class="strategy-list"></div>
+          </article>
+
           <article class="panel autopilot-panel" id="autopilot">
             <div class="panel-heading">
               <div>
@@ -298,6 +309,15 @@
               <label>
                 Long MA
                 <input name="long_window" type="number" min="2" step="1" value="20" required />
+              </label>
+              <label>
+                Strategy
+                <select name="strategy_id" id="backtestStrategySelect">
+                  <option value="moving_average">Moving Average Trend</option>
+                  <option value="momentum">Momentum Burst</option>
+                  <option value="breakout">Breakout</option>
+                  <option value="rsi_reversion">RSI Mean Reversion</option>
+                </select>
               </label>
             </div>
             <div class="backtest-results" aria-label="Backtest results">

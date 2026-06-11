@@ -24,6 +24,10 @@ const fields = {
   backtestEquity: document.querySelector("#backtestEquity"),
   backtestTrades: document.querySelector("#backtestTrades"),
   backtestWinRate: document.querySelector("#backtestWinRate"),
+  strategySummary: document.querySelector("#strategySummary"),
+  selectedStrategyBadge: document.querySelector("#selectedStrategyBadge"),
+  strategyList: document.querySelector("#strategyList"),
+  backtestStrategySelect: document.querySelector("#backtestStrategySelect"),
   sidebarMode: document.querySelector("#sidebarMode"),
   positionSummary: document.querySelector("#positionSummary"),
   lastUpdated: document.querySelector("#lastUpdated"),
@@ -213,6 +217,59 @@ function renderBacktestResult(result) {
   fields.backtestVerdict.className = `status-pill ${result.is_profitable ? "ok" : "error"}`;
   fields.backtestSummary.textContent =
     `${result.trade_count} trade(s), ${money(result.pnl)} total PnL`;
+}
+
+function percent(value) {
+  if (value === null || value === undefined) {
+    return "Needs candles";
+  }
+  return `${Number(value).toFixed(1)}%`;
+}
+
+function renderStrategies(strategies) {
+  const selected = strategies.find((item) => item.selected) || strategies[0];
+  if (selected) {
+    fields.selectedStrategyBadge.textContent = selected.name;
+    fields.selectedStrategyBadge.className = "status-pill ok";
+    fields.strategySummary.textContent =
+      `${selected.name} drives paper autopilot when it is running.`;
+    fields.backtestStrategySelect.value = selected.id;
+  }
+
+  fields.strategyList.innerHTML = strategies
+    .map((strategy) => {
+      const selectedClass = strategy.selected ? " selected" : "";
+      const disabled = strategy.selected ? "disabled" : "";
+      return `
+        <article class="strategy-card${selectedClass}">
+          <div class="strategy-card-head">
+            <div>
+              <strong>${strategy.name}</strong>
+              <span>${strategy.description}</span>
+            </div>
+            <span class="strategy-rate">${percent(strategy.success_rate)}</span>
+          </div>
+          <div class="strategy-stats">
+            <span>Avg PnL: ${percent(strategy.average_pnl_percent)}</span>
+            <span>Symbols tested: ${strategy.tested_symbols}</span>
+          </div>
+          <div class="strategy-columns">
+            <div>
+              <b>Pros</b>
+              <ul>${strategy.pros.map((item) => `<li>${item}</li>`).join("")}</ul>
+            </div>
+            <div>
+              <b>Cons</b>
+              <ul>${strategy.cons.map((item) => `<li>${item}</li>`).join("")}</ul>
+            </div>
+          </div>
+          <button type="button" data-strategy-id="${strategy.id}" ${disabled}>
+            ${strategy.selected ? "Selected" : "Select Model"}
+          </button>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function changePercent(candles) {
@@ -608,12 +665,13 @@ async function addLiveTick(symbol) {
 }
 
 async function refreshDashboard() {
-  const [status, portfolio, trades, sellDecisions, autopilot] = await Promise.all([
+  const [status, portfolio, trades, sellDecisions, autopilot, strategies] = await Promise.all([
     request("/status"),
     request("/portfolio"),
     request("/trades"),
     request("/sell-decisions"),
     request("/autopilot"),
+    request("/strategies"),
   ]);
 
   fields.environment.textContent = `Environment: ${status.environment}`;
@@ -632,6 +690,7 @@ async function refreshDashboard() {
   renderTrades(trades);
   renderSellDecisions(sellDecisions);
   renderAutopilot(autopilot);
+  renderStrategies(strategies);
   renderMetricSparklines(portfolio, status);
   await loadChart(activeChartSymbol);
   await renderWatchlist();
@@ -722,6 +781,25 @@ document.querySelectorAll(".timeframe-button").forEach((button) => {
   });
 });
 
+fields.strategyList.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-strategy-id]");
+  if (!button) {
+    return;
+  }
+
+  try {
+    const state = await request("/strategies/select", {
+      method: "POST",
+      body: JSON.stringify({ strategy_id: button.dataset.strategyId }),
+    });
+    renderAutopilot(state);
+    renderStrategies(await request("/strategies"));
+    showActivity("Strategy model selected", state);
+  } catch (error) {
+    showActivity("Strategy select failed", { error: error.message });
+  }
+});
+
 fields.watchlist.addEventListener("click", async (event) => {
   const item = event.target.closest("[data-symbol]");
   if (!item) {
@@ -768,6 +846,7 @@ document.querySelector("#backtestForm").addEventListener("submit", async (event)
     quantity: Number(form.get("quantity")),
     short_window: Number(form.get("short_window")),
     long_window: Number(form.get("long_window")),
+    strategy_id: String(form.get("strategy_id")),
   };
 
   try {
