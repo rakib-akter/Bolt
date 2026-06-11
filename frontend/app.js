@@ -9,8 +9,8 @@ const fields = {
   marketValue: document.querySelector("#marketValue"),
   unrealized: document.querySelector("#unrealized"),
   tradeCount: document.querySelector("#tradeCount"),
-  activityLog: document.querySelector("#activityLog"),
   connectionBadge: document.querySelector("#connectionBadge"),
+  notification: document.querySelector("#notification"),
   sidebarMode: document.querySelector("#sidebarMode"),
   positionSummary: document.querySelector("#positionSummary"),
   lastUpdated: document.querySelector("#lastUpdated"),
@@ -61,7 +61,12 @@ function money(value) {
 
 function showActivity(label, value) {
   fields.lastAction.textContent = label;
-  fields.activityLog.textContent = JSON.stringify(value, null, 2);
+  fields.notification.textContent = value?.error ? `${label}: ${value.error}` : label;
+  fields.notification.classList.add("visible");
+  clearTimeout(showActivity.timeout);
+  showActivity.timeout = setTimeout(() => {
+    fields.notification.classList.remove("visible");
+  }, 2800);
 }
 
 function setConnection(state, message) {
