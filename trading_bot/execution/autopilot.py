@@ -13,6 +13,9 @@ class AutopilotState:
     enabled: bool = False
     mode: str = "paper"
     symbols: list[str] = field(default_factory=lambda: ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"])
+    auto_sell_enabled: bool = True
+    stop_loss_percent: float = 0.05
+    take_profit_percent: float = 0.10
     last_action: str = "Autopilot is off."
     last_run_at: datetime | None = None
     orders: list[OrderResult] = field(default_factory=list)
@@ -33,6 +36,30 @@ class PaperAutopilot:
         self.trading_engine = trading_engine
         self.sell_decision_engine = sell_decision_engine
         self.state = AutopilotState()
+
+    def configure_auto_sell(
+        self,
+        auto_sell_enabled: bool | None = None,
+        stop_loss_percent: float | None = None,
+        take_profit_percent: float | None = None,
+    ) -> AutopilotState:
+        if auto_sell_enabled is not None:
+            self.state.auto_sell_enabled = auto_sell_enabled
+        if stop_loss_percent is not None:
+            if stop_loss_percent <= 0:
+                raise ValueError("Stop loss percent must be greater than zero.")
+            self.state.stop_loss_percent = stop_loss_percent
+        if take_profit_percent is not None:
+            if take_profit_percent <= 0:
+                raise ValueError("Take profit percent must be greater than zero.")
+            self.state.take_profit_percent = take_profit_percent
+
+        self.sell_decision_engine = SellDecisionEngine(
+            stop_loss_percent=self.state.stop_loss_percent,
+            take_profit_percent=self.state.take_profit_percent,
+        )
+        self.state.last_action = "Auto-sell rules updated."
+        return self.state
 
     def start(self, symbols: list[str] | None = None) -> AutopilotState:
         if symbols:
@@ -67,6 +94,9 @@ class PaperAutopilot:
             position = positions_by_symbol.get(symbol)
 
             if position is not None:
+                if not self.state.auto_sell_enabled:
+                    continue
+
                 current_price = self.broker.get_price(symbol)
                 sell_decision = self.sell_decision_engine.evaluate(
                     position=position,
@@ -101,4 +131,3 @@ class PaperAutopilot:
             self.state.last_action = "Autopilot checked markets. No trade placed."
 
         return self.state
-

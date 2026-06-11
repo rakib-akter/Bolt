@@ -89,6 +89,12 @@ class AutopilotRequest(BaseModel):
     symbols: list[str] | None = None
 
 
+class AutopilotConfigRequest(BaseModel):
+    auto_sell_enabled: bool | None = None
+    stop_loss_percent: float | None = None
+    take_profit_percent: float | None = None
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment}
@@ -178,6 +184,19 @@ def start_autopilot(request: AutopilotRequest) -> dict[str, object]:
 @app.post("/autopilot/stop")
 def stop_autopilot() -> dict[str, object]:
     return asdict(autopilot.stop())
+
+
+@app.post("/autopilot/config")
+def configure_autopilot(request: AutopilotConfigRequest) -> dict[str, object]:
+    try:
+        state = autopilot.configure_auto_sell(
+            auto_sell_enabled=request.auto_sell_enabled,
+            stop_loss_percent=request.stop_loss_percent,
+            take_profit_percent=request.take_profit_percent,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return asdict(state)
 
 
 @app.post("/autopilot/tick")
