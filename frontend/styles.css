@@ -354,6 +354,33 @@ label {
   gap: 10px;
 }
 
+.backtest-results {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.backtest-results div {
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-height: 74px;
+  padding: 12px;
+}
+
+.backtest-results span {
+  color: #94a9c6;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.backtest-results strong {
+  color: #e5edf7;
+  font-size: 18px;
+}
+
 .chart-panel {
   margin-bottom: 14px;
 }
@@ -747,7 +774,8 @@ td {
   .workspace,
   .data-grid,
   .autopilot-flow,
-  .autopilot-rules {
+  .autopilot-rules,
+  .backtest-results {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -771,6 +799,7 @@ td {
   .data-grid,
   .autopilot-flow,
   .autopilot-rules,
+  .backtest-results,
   .chart-search,
   .quote-board,
   .form-grid,

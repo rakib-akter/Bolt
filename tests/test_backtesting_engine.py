@@ -21,5 +21,7 @@ def test_backtest_engine_returns_equity_and_trades() -> None:
 
     assert result.starting_cash == 1000
     assert result.ending_equity >= 1000
+    assert result.pnl_percent >= 0
+    assert result.trade_count == len(result.trades)
+    assert result.is_profitable is True
     assert len(result.trades) >= 1
-

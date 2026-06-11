@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from trading_bot.backtesting.engine import BacktestEngine
 from trading_bot.broker.alpaca_broker import AlpacaBroker
 from trading_bot.broker.base_broker import BaseBroker
 from trading_bot.broker.paper_broker import PaperBroker
@@ -95,6 +96,14 @@ class AutopilotConfigRequest(BaseModel):
     take_profit_percent: float | None = None
 
 
+class BacktestRequest(BaseModel):
+    symbol: str
+    starting_cash: float = 10000.0
+    quantity: float = 1.0
+    short_window: int = 5
+    long_window: int = 20
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment}
@@ -174,6 +183,35 @@ def sell_decisions() -> list[dict[str, object]]:
 @app.get("/autopilot")
 def autopilot_status() -> dict[str, object]:
     return asdict(autopilot.state)
+
+
+@app.post("/backtest")
+def backtest(request: BacktestRequest) -> dict[str, object]:
+    if request.starting_cash <= 0:
+        raise HTTPException(status_code=400, detail="Starting cash must be greater than zero.")
+    if request.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be greater than zero.")
+
+    candles_for_symbol = market_data.candles_for(request.symbol)
+    if not candles_for_symbol:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No candles available for {request.symbol.upper()}.",
+        )
+
+    try:
+        backtest_strategy = MovingAverageStrategy(
+            short_window=request.short_window,
+            long_window=request.long_window,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    engine = BacktestEngine(
+        strategy=backtest_strategy,
+        starting_cash=request.starting_cash,
+    )
+    return asdict(engine.run(candles_for_symbol, quantity=request.quantity))
 
 
 @app.post("/autopilot/start")

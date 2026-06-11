@@ -261,6 +261,45 @@
             </label>
             <button type="submit">Run Once</button>
           </form>
+
+          <form id="backtestForm" class="panel control-panel backtest-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Backtest Strategy</h2>
+                <span id="backtestSummary">Run stored candles before trusting a setup</span>
+              </div>
+              <span id="backtestVerdict" class="status-pill warning">Waiting</span>
+            </div>
+            <div class="form-grid">
+              <label>
+                Symbol
+                <input name="symbol" value="AAPL" required />
+              </label>
+              <label>
+                Starting cash
+                <input name="starting_cash" type="number" min="1" step="100" value="10000" required />
+              </label>
+              <label>
+                Quantity
+                <input name="quantity" type="number" min="0.01" step="0.01" value="1" required />
+              </label>
+              <label>
+                Short MA
+                <input name="short_window" type="number" min="1" step="1" value="5" required />
+              </label>
+              <label>
+                Long MA
+                <input name="long_window" type="number" min="2" step="1" value="20" required />
+              </label>
+            </div>
+            <div class="backtest-results" aria-label="Backtest results">
+              <div><span>PnL %</span><strong id="backtestPnl">-</strong></div>
+              <div><span>Ending equity</span><strong id="backtestEquity">-</strong></div>
+              <div><span>Trades</span><strong id="backtestTrades">-</strong></div>
+              <div><span>Win rate</span><strong id="backtestWinRate">-</strong></div>
+            </div>
+            <button type="submit">Run Backtest</button>
+          </form>
         </section>
 
         <section class="data-grid" id="positions">

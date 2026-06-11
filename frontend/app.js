@@ -18,6 +18,12 @@ const fields = {
   autoSellToggle: document.querySelector("#autoSellToggle"),
   stopLossPercent: document.querySelector("#stopLossPercent"),
   takeProfitPercent: document.querySelector("#takeProfitPercent"),
+  backtestSummary: document.querySelector("#backtestSummary"),
+  backtestVerdict: document.querySelector("#backtestVerdict"),
+  backtestPnl: document.querySelector("#backtestPnl"),
+  backtestEquity: document.querySelector("#backtestEquity"),
+  backtestTrades: document.querySelector("#backtestTrades"),
+  backtestWinRate: document.querySelector("#backtestWinRate"),
   sidebarMode: document.querySelector("#sidebarMode"),
   positionSummary: document.querySelector("#positionSummary"),
   lastUpdated: document.querySelector("#lastUpdated"),
@@ -185,6 +191,19 @@ function renderAutopilot(state) {
     ? `Auto exits at -${fields.stopLossPercent.value}% or +${fields.takeProfitPercent.value}%`
     : "Auto-sell is off";
   fields.autopilotLastAction.textContent = state.last_action || "No autopilot action yet.";
+}
+
+function renderBacktestResult(result) {
+  const pnlClass = result.pnl_percent >= 0 ? "positive" : "negative";
+  fields.backtestPnl.textContent = `${Number(result.pnl_percent).toFixed(2)}%`;
+  fields.backtestPnl.className = pnlClass;
+  fields.backtestEquity.textContent = money(result.ending_equity);
+  fields.backtestTrades.textContent = result.trade_count;
+  fields.backtestWinRate.textContent = `${Number(result.win_rate).toFixed(1)}%`;
+  fields.backtestVerdict.textContent = result.is_profitable ? "Profitable" : "Not Valid";
+  fields.backtestVerdict.className = `status-pill ${result.is_profitable ? "ok" : "error"}`;
+  fields.backtestSummary.textContent =
+    `${result.trade_count} trade(s), ${money(result.pnl)} total PnL`;
 }
 
 function changePercent(candles) {
@@ -622,6 +641,32 @@ document.querySelector("#runForm").addEventListener("submit", async (event) => {
   } catch (error) {
     setConnection("error", "Offline");
     showActivity("Strategy failed", { error: error.message });
+  }
+});
+
+document.querySelector("#backtestForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const payload = {
+    symbol: String(form.get("symbol")).toUpperCase(),
+    starting_cash: Number(form.get("starting_cash")),
+    quantity: Number(form.get("quantity")),
+    short_window: Number(form.get("short_window")),
+    long_window: Number(form.get("long_window")),
+  };
+
+  try {
+    const result = await request("/backtest", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    renderBacktestResult(result);
+    showActivity("Backtest complete", result);
+  } catch (error) {
+    fields.backtestVerdict.textContent = "No Result";
+    fields.backtestVerdict.className = "status-pill error";
+    fields.backtestSummary.textContent = error.message;
+    showActivity("Backtest failed", { error: error.message });
   }
 });
 
