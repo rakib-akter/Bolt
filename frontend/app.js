@@ -11,6 +11,9 @@ const fields = {
   tradeCount: document.querySelector("#tradeCount"),
   connectionBadge: document.querySelector("#connectionBadge"),
   notification: document.querySelector("#notification"),
+  autopilotStatus: document.querySelector("#autopilotStatus"),
+  autopilotMode: document.querySelector("#autopilotMode"),
+  autopilotLastAction: document.querySelector("#autopilotLastAction"),
   sidebarMode: document.querySelector("#sidebarMode"),
   positionSummary: document.querySelector("#positionSummary"),
   lastUpdated: document.querySelector("#lastUpdated"),
@@ -40,6 +43,7 @@ const fields = {
 let activeChartSymbol = "AAPL";
 let liveRefreshTimer;
 let liveMarketTimer;
+let autopilotTimer;
 let activeChartRange = "all";
 let latestCandles = [];
 const watchlistSymbols = ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"];
@@ -160,6 +164,14 @@ function renderSellDecisions(decisions) {
       `;
     })
     .join("");
+}
+
+function renderAutopilot(state) {
+  const enabled = Boolean(state.enabled);
+  fields.autopilotStatus.textContent = enabled ? "Paper autopilot is running" : "Paper autopilot is off";
+  fields.autopilotMode.textContent = enabled ? "Auto Paper" : "Manual";
+  fields.autopilotMode.className = `status-pill ${enabled ? "ok" : "warning"}`;
+  fields.autopilotLastAction.textContent = state.last_action || "No autopilot action yet.";
 }
 
 function changePercent(candles) {
@@ -462,11 +474,12 @@ async function addLiveTick(symbol) {
 }
 
 async function refreshDashboard() {
-  const [status, portfolio, trades, sellDecisions] = await Promise.all([
+  const [status, portfolio, trades, sellDecisions, autopilot] = await Promise.all([
     request("/status"),
     request("/portfolio"),
     request("/trades"),
     request("/sell-decisions"),
+    request("/autopilot"),
   ]);
 
   fields.environment.textContent = `Environment: ${status.environment}`;
@@ -484,11 +497,12 @@ async function refreshDashboard() {
   renderPositions(portfolio.positions);
   renderTrades(trades);
   renderSellDecisions(sellDecisions);
+  renderAutopilot(autopilot);
   renderMetricSparklines(portfolio, status);
   await loadChart(activeChartSymbol);
   await renderWatchlist();
   setConnection("ok", "Connected");
-  showActivity("Dashboard refreshed", { status, portfolio, trades, sellDecisions });
+  showActivity("Dashboard refreshed", { status, portfolio, trades, sellDecisions, autopilot });
 }
 
 document.querySelector("#refreshButton").addEventListener("click", () => {
@@ -595,6 +609,61 @@ document.querySelector("#runForm").addEventListener("submit", async (event) => {
   } catch (error) {
     setConnection("error", "Offline");
     showActivity("Strategy failed", { error: error.message });
+  }
+});
+
+async function runAutopilotTick() {
+  const state = await request("/autopilot/tick", { method: "POST", body: "{}" });
+  renderAutopilot(state);
+  await refreshDashboard();
+  return state;
+}
+
+function startAutopilotTimer() {
+  clearInterval(autopilotTimer);
+  autopilotTimer = setInterval(() => {
+    runAutopilotTick().catch((error) => {
+      setConnection("error", "Offline");
+      showActivity("Autopilot failed", { error: error.message });
+    });
+  }, 6000);
+}
+
+function stopAutopilotTimer() {
+  clearInterval(autopilotTimer);
+}
+
+document.querySelector("#startAutopilotButton").addEventListener("click", async () => {
+  try {
+    const state = await request("/autopilot/start", {
+      method: "POST",
+      body: JSON.stringify({ symbols: watchlistSymbols }),
+    });
+    renderAutopilot(state);
+    startAutopilotTimer();
+    showActivity("Paper autopilot started", state);
+  } catch (error) {
+    showActivity("Autopilot start failed", { error: error.message });
+  }
+});
+
+document.querySelector("#stopAutopilotButton").addEventListener("click", async () => {
+  try {
+    const state = await request("/autopilot/stop", { method: "POST", body: "{}" });
+    stopAutopilotTimer();
+    renderAutopilot(state);
+    showActivity("Paper autopilot stopped", state);
+  } catch (error) {
+    showActivity("Autopilot stop failed", { error: error.message });
+  }
+});
+
+document.querySelector("#runAutopilotButton").addEventListener("click", async () => {
+  try {
+    const state = await runAutopilotTick();
+    showActivity("Autopilot checked markets", state);
+  } catch (error) {
+    showActivity("Autopilot check failed", { error: error.message });
   }
 });
 

@@ -280,6 +280,47 @@ label {
   margin-bottom: 14px;
 }
 
+.autopilot-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.autopilot-flow {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.autopilot-flow div {
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.autopilot-flow strong {
+  align-items: center;
+  background: #2962ff;
+  border-radius: 999px;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  margin-bottom: 8px;
+  width: 24px;
+}
+
+.autopilot-flow span,
+.helper-text {
+  color: #94a9c6;
+  font-size: 13px;
+}
+
+.autopilot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .chart-panel {
   margin-bottom: 14px;
 }
@@ -671,7 +712,8 @@ td {
   .market-strip,
   .market-workspace,
   .workspace,
-  .data-grid {
+  .data-grid,
+  .autopilot-flow {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -693,6 +735,7 @@ td {
   .market-workspace,
   .workspace,
   .data-grid,
+  .autopilot-flow,
   .chart-search,
   .quote-board,
   .form-grid,

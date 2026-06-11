@@ -19,6 +19,7 @@
         <nav aria-label="Dashboard sections">
           <a href="#overview" class="active">Overview</a>
           <a href="#chart">Markets</a>
+          <a href="#autopilot">Autopilot</a>
           <a href="#controls">Controls</a>
           <a href="#positions">Positions</a>
         </nav>
@@ -162,6 +163,30 @@
         </section>
 
         <section class="workspace" id="controls">
+          <article class="panel autopilot-panel" id="autopilot">
+            <div class="panel-heading">
+              <div>
+                <h2>Autopilot</h2>
+                <span id="autopilotStatus">Paper autopilot is off</span>
+              </div>
+              <span id="autopilotMode" class="status-pill warning">Manual</span>
+            </div>
+            <div class="autopilot-flow" aria-label="Autopilot flow">
+              <div><strong>1</strong><span>Read candles</span></div>
+              <div><strong>2</strong><span>Generate signal</span></div>
+              <div><strong>3</strong><span>Check risk</span></div>
+              <div><strong>4</strong><span>Place paper order</span></div>
+            </div>
+            <div class="autopilot-actions">
+              <button id="startAutopilotButton" type="button">Start Paper Autopilot</button>
+              <button id="stopAutopilotButton" type="button" class="secondary-button">Stop</button>
+              <button id="runAutopilotButton" type="button" class="secondary-button">Run Check Now</button>
+            </div>
+            <p class="helper-text" id="autopilotLastAction">
+              Autopilot is paper-only. It will buy when the strategy says BUY and sell when sell rules trigger.
+            </p>
+          </article>
+
           <form id="candleForm" class="panel control-panel">
             <div class="panel-heading">
               <h2>Add Market Candle</h2>
@@ -270,7 +295,7 @@
         <section class="data-grid">
           <article class="panel">
             <div class="panel-heading">
-              <h2>Trades</h2>
+              <h2>Paper Trade History</h2>
               <span id="lastUpdated">Not synced</span>
             </div>
             <div class="table-wrap">
