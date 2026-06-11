@@ -98,6 +98,11 @@ class AutopilotConfigRequest(BaseModel):
     take_profit_percent: float | None = None
 
 
+class TradingUniverseRequest(BaseModel):
+    symbols: list[str] | None = None
+    max_active_symbols: int | None = None
+
+
 class BacktestRequest(BaseModel):
     symbol: str
     starting_cash: float = 10000.0
@@ -107,12 +112,21 @@ class BacktestRequest(BaseModel):
     strategy_id: str = "moving_average"
 
 
+class BacktestCompareRequest(BaseModel):
+    first_symbol: str
+    second_symbol: str
+    starting_cash: float = 10000.0
+    quantity: float = 1.0
+    strategy_id: str = "moving_average"
+
+
 class StrategySelectionRequest(BaseModel):
     strategy_id: str
 
 
 class PaperSetupRequest(BaseModel):
     symbols: list[str] | None = None
+    max_active_symbols: int = 5
     starting_cash: float = settings.default_cash
     candles_per_symbol: int = 80
     reset_trades: bool = True
@@ -169,6 +183,30 @@ def current_strategy():
     return autopilot.strategy
 
 
+def run_backtest_for_symbol(
+    symbol: str,
+    strategy_id: str,
+    starting_cash: float,
+    quantity: float,
+) -> dict[str, object]:
+    candles_for_symbol = market_data.candles_for(symbol)
+    if not candles_for_symbol:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No candles available for {symbol.upper()}.",
+        )
+
+    try:
+        backtest_strategy = create_strategy(strategy_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    engine = BacktestEngine(strategy=backtest_strategy, starting_cash=starting_cash)
+    result = asdict(engine.run(candles_for_symbol, quantity=quantity))
+    result["symbol"] = symbol.upper()
+    return result
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment}
@@ -183,6 +221,7 @@ def status() -> dict[str, object]:
         "position_count": len(broker.get_positions()),
         "autopilot_enabled": autopilot.state.enabled,
         "strategy_id": autopilot.state.strategy_id,
+        "max_active_symbols": autopilot.state.max_active_symbols,
     }
 
 
@@ -298,8 +337,11 @@ def setup_paper_trading(request: PaperSetupRequest) -> dict[str, object]:
         raise HTTPException(status_code=400, detail="Starting cash must be greater than zero.")
     if request.candles_per_symbol < 30:
         raise HTTPException(status_code=400, detail="Use at least 30 candles per symbol.")
+    if request.max_active_symbols <= 0:
+        raise HTTPException(status_code=400, detail="Max active symbols must be greater than zero.")
 
     symbols = [symbol.upper() for symbol in (request.symbols or autopilot.state.symbols)]
+    max_active_symbols = min(request.max_active_symbols, len(symbols))
     broker.reset(request.starting_cash)
     market_data.clear()
     autopilot.stop()
@@ -312,6 +354,7 @@ def setup_paper_trading(request: PaperSetupRequest) -> dict[str, object]:
             market_data.add_candle(candle)
         broker.set_price(symbol, symbol_candles[-1].close)
 
+    autopilot.configure_symbols(symbols, max_active_symbols=max_active_symbols)
     autopilot.start(symbols)
     autopilot.state.last_action = "Paper trading workspace is ready with fake money."
     return {
@@ -319,6 +362,7 @@ def setup_paper_trading(request: PaperSetupRequest) -> dict[str, object]:
         "broker": "paper",
         "cash": broker.get_balance(),
         "symbols": symbols,
+        "max_active_symbols": max_active_symbols,
         "candles_per_symbol": request.candles_per_symbol,
         "autopilot": asdict(autopilot.state),
         "message": "Paper trading workspace is ready. No real orders will be placed.",
@@ -389,12 +433,58 @@ def configure_autopilot(request: AutopilotConfigRequest) -> dict[str, object]:
     return asdict(state)
 
 
+@app.post("/autopilot/universe")
+def configure_trading_universe(request: TradingUniverseRequest) -> dict[str, object]:
+    try:
+        state = autopilot.configure_symbols(
+            symbols=request.symbols,
+            max_active_symbols=request.max_active_symbols,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return asdict(state)
+
+
 @app.post("/autopilot/tick")
 def autopilot_tick() -> dict[str, object]:
     state = autopilot.run_once()
     for order in state.orders:
         trade_repository.save_order_result(order)
     return asdict(state)
+
+
+@app.post("/backtest/compare")
+def compare_backtests(request: BacktestCompareRequest) -> dict[str, object]:
+    if request.starting_cash <= 0:
+        raise HTTPException(status_code=400, detail="Starting cash must be greater than zero.")
+    if request.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be greater than zero.")
+
+    first = run_backtest_for_symbol(
+        request.first_symbol,
+        request.strategy_id,
+        request.starting_cash,
+        request.quantity,
+    )
+    second = run_backtest_for_symbol(
+        request.second_symbol,
+        request.strategy_id,
+        request.starting_cash,
+        request.quantity,
+    )
+    first_pnl = float(first["pnl_percent"])
+    second_pnl = float(second["pnl_percent"])
+    if first_pnl == second_pnl:
+        winner = "tie"
+    else:
+        winner = first["symbol"] if first_pnl > second_pnl else second["symbol"]
+    return {
+        "strategy_id": request.strategy_id,
+        "first": first,
+        "second": second,
+        "winner": winner,
+        "pnl_gap_percent": abs(first_pnl - second_pnl),
+    }
 
 
 @app.post("/run-once")

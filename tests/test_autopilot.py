@@ -93,3 +93,26 @@ def test_autopilot_keeps_position_when_auto_sell_is_off() -> None:
 
     assert state.orders == []
     assert broker.get_positions()[0].symbol == "AAPL"
+
+
+def test_autopilot_limits_new_buys_to_max_active_symbols() -> None:
+    broker = PaperBroker(cash=5000, prices={"AAPL": 120, "MSFT": 120})
+    store = make_candles("AAPL", [100, 101, 102, 103, 110, 115, 120])
+    for candle in make_candles("MSFT", [100, 101, 102, 103, 110, 115, 120]).candles_for("MSFT"):
+        store.add_candle(candle)
+    strategy = MovingAverageStrategy(short_window=2, long_window=5)
+    trading_engine = PaperTradingEngine(broker, RiskManager(max_position_value=500))
+    autopilot = PaperAutopilot(
+        broker=broker,
+        market_data=store,
+        strategy=strategy,
+        trading_engine=trading_engine,
+        sell_decision_engine=SellDecisionEngine(),
+    )
+
+    autopilot.configure_symbols(["AAPL", "MSFT"], max_active_symbols=1)
+    autopilot.start()
+    state = autopilot.run_once()
+
+    assert len([order for order in state.orders if order.status == "filled"]) == 1
+    assert len(broker.get_positions()) == 1

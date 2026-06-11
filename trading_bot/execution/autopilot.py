@@ -13,6 +13,7 @@ class AutopilotState:
     enabled: bool = False
     mode: str = "paper"
     symbols: list[str] = field(default_factory=lambda: ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"])
+    max_active_symbols: int = 5
     strategy_id: str = "moving_average"
     auto_sell_enabled: bool = True
     stop_loss_percent: float = 0.05
@@ -72,6 +73,23 @@ class PaperAutopilot:
         self.state.last_action = f"Strategy changed to {strategy_id}."
         return self.state
 
+    def configure_symbols(
+        self,
+        symbols: list[str] | None = None,
+        max_active_symbols: int | None = None,
+    ) -> AutopilotState:
+        if symbols is not None:
+            normalized_symbols = [symbol.upper() for symbol in symbols if symbol.strip()]
+            if not normalized_symbols:
+                raise ValueError("At least one symbol is required.")
+            self.state.symbols = normalized_symbols
+        if max_active_symbols is not None:
+            if max_active_symbols <= 0:
+                raise ValueError("Max active symbols must be greater than zero.")
+            self.state.max_active_symbols = max_active_symbols
+        self.state.last_action = "Trading universe updated."
+        return self.state
+
     def start(self, symbols: list[str] | None = None) -> AutopilotState:
         if symbols:
             self.state.symbols = [symbol.upper() for symbol in symbols]
@@ -94,6 +112,11 @@ class PaperAutopilot:
 
         positions_by_symbol = {
             position.symbol: position for position in self.broker.get_positions()
+        }
+        active_symbols = {
+            symbol
+            for symbol in self.state.symbols
+            if symbol in positions_by_symbol
         }
 
         for symbol in self.state.symbols:
@@ -126,6 +149,8 @@ class PaperAutopilot:
                 continue
 
             if signal == "BUY":
+                if len(active_symbols) >= self.state.max_active_symbols:
+                    continue
                 price = self.broker.get_price(symbol)
                 result = self.trading_engine.execute(
                     symbol=symbol,
@@ -134,6 +159,8 @@ class PaperAutopilot:
                 )
                 if result.order is not None:
                     self.state.orders.append(result.order)
+                    if result.order.status == "filled":
+                        active_symbols.add(symbol)
 
         if self.state.orders:
             filled = len([order for order in self.state.orders if order.status == "filled"])
