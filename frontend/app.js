@@ -14,6 +14,10 @@ const fields = {
   autopilotStatus: document.querySelector("#autopilotStatus"),
   autopilotMode: document.querySelector("#autopilotMode"),
   autopilotLastAction: document.querySelector("#autopilotLastAction"),
+  autoSellSummary: document.querySelector("#autoSellSummary"),
+  autoSellToggle: document.querySelector("#autoSellToggle"),
+  stopLossPercent: document.querySelector("#stopLossPercent"),
+  takeProfitPercent: document.querySelector("#takeProfitPercent"),
   sidebarMode: document.querySelector("#sidebarMode"),
   positionSummary: document.querySelector("#positionSummary"),
   lastUpdated: document.querySelector("#lastUpdated"),
@@ -168,9 +172,18 @@ function renderSellDecisions(decisions) {
 
 function renderAutopilot(state) {
   const enabled = Boolean(state.enabled);
+  const autoSellEnabled = Boolean(state.auto_sell_enabled);
+  const stopLossPercent = Number(state.stop_loss_percent || 0.05) * 100;
+  const takeProfitPercent = Number(state.take_profit_percent || 0.10) * 100;
   fields.autopilotStatus.textContent = enabled ? "Paper autopilot is running" : "Paper autopilot is off";
   fields.autopilotMode.textContent = enabled ? "Auto Paper" : "Manual";
   fields.autopilotMode.className = `status-pill ${enabled ? "ok" : "warning"}`;
+  fields.autoSellToggle.checked = autoSellEnabled;
+  fields.stopLossPercent.value = stopLossPercent.toFixed(1).replace(".0", "");
+  fields.takeProfitPercent.value = takeProfitPercent.toFixed(1).replace(".0", "");
+  fields.autoSellSummary.textContent = autoSellEnabled
+    ? `Auto exits at -${fields.stopLossPercent.value}% or +${fields.takeProfitPercent.value}%`
+    : "Auto-sell is off";
   fields.autopilotLastAction.textContent = state.last_action || "No autopilot action yet.";
 }
 
@@ -618,6 +631,33 @@ async function runAutopilotTick() {
   await refreshDashboard();
   return state;
 }
+
+document.querySelector("#saveAutopilotConfigButton").addEventListener("click", async () => {
+  const stopLossPercent = Number(fields.stopLossPercent.value);
+  const takeProfitPercent = Number(fields.takeProfitPercent.value);
+
+  if (stopLossPercent <= 0 || takeProfitPercent <= 0) {
+    showActivity("Sell rules need positive percentages", {
+      error: "Use values greater than 0.",
+    });
+    return;
+  }
+
+  try {
+    const state = await request("/autopilot/config", {
+      method: "POST",
+      body: JSON.stringify({
+        auto_sell_enabled: fields.autoSellToggle.checked,
+        stop_loss_percent: stopLossPercent / 100,
+        take_profit_percent: takeProfitPercent / 100,
+      }),
+    });
+    renderAutopilot(state);
+    showActivity("Auto-sell rules saved", state);
+  } catch (error) {
+    showActivity("Auto-sell save failed", { error: error.message });
+  }
+});
 
 function startAutopilotTimer() {
   clearInterval(autopilotTimer);

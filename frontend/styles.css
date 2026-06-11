@@ -315,6 +315,39 @@ label {
   font-size: 13px;
 }
 
+.auto-sell-card {
+  align-items: center;
+  background: #0f1725;
+  border: 1px solid #222b3a;
+  border-radius: 8px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.auto-sell-card div {
+  display: grid;
+  gap: 4px;
+}
+
+.auto-sell-card strong {
+  color: #e5edf7;
+  font-size: 15px;
+}
+
+.auto-sell-card span {
+  color: #94a9c6;
+  font-size: 13px;
+}
+
+.autopilot-rules {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .autopilot-actions {
   display: flex;
   flex-wrap: wrap;
@@ -713,7 +746,8 @@ td {
   .market-workspace,
   .workspace,
   .data-grid,
-  .autopilot-flow {
+  .autopilot-flow,
+  .autopilot-rules {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -736,10 +770,16 @@ td {
   .workspace,
   .data-grid,
   .autopilot-flow,
+  .autopilot-rules,
   .chart-search,
   .quote-board,
   .form-grid,
   nav {
     grid-template-columns: 1fr;
+  }
+
+  .auto-sell-card {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

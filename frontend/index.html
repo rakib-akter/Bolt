@@ -175,7 +175,28 @@
               <div><strong>1</strong><span>Read candles</span></div>
               <div><strong>2</strong><span>Generate signal</span></div>
               <div><strong>3</strong><span>Check risk</span></div>
-              <div><strong>4</strong><span>Place paper order</span></div>
+              <div><strong>4</strong><span>Buy or sell paper position</span></div>
+            </div>
+            <div class="auto-sell-card">
+              <div>
+                <strong>Automatic Selling</strong>
+                <span id="autoSellSummary">Stop 5% | Take profit 10%</span>
+              </div>
+              <label class="switch-control">
+                <input id="autoSellToggle" type="checkbox" checked />
+                Auto-sell on
+              </label>
+            </div>
+            <div class="autopilot-rules">
+              <label>
+                Stop loss %
+                <input id="stopLossPercent" type="number" min="0.1" step="0.1" value="5" />
+              </label>
+              <label>
+                Take profit %
+                <input id="takeProfitPercent" type="number" min="0.1" step="0.1" value="10" />
+              </label>
+              <button id="saveAutopilotConfigButton" type="button" class="secondary-button">Save Sell Rules</button>
             </div>
             <div class="autopilot-actions">
               <button id="startAutopilotButton" type="button">Start Paper Autopilot</button>
@@ -183,7 +204,7 @@
               <button id="runAutopilotButton" type="button" class="secondary-button">Run Check Now</button>
             </div>
             <p class="helper-text" id="autopilotLastAction">
-              Autopilot is paper-only. It will buy when the strategy says BUY and sell when sell rules trigger.
+              Autopilot is paper-only. When auto-sell is on, it exits positions from stop loss, take profit, or a sell signal.
             </p>
           </article>
 
