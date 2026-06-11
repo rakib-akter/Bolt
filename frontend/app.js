@@ -56,6 +56,7 @@ let liveMarketTimer;
 let autopilotTimer;
 let activeChartRange = "all";
 let latestCandles = [];
+const localCandleCache = new Map();
 const watchlistSymbols = ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"];
 const metricHistory = {
   cash: [],
@@ -222,10 +223,60 @@ function visibleCandles(candles) {
   return candles.slice(-Number(activeChartRange));
 }
 
+function symbolSeed(symbol) {
+  return symbol.split("").reduce((total, letter) => total + letter.charCodeAt(0), 0);
+}
+
+function generateDemoCandles(symbol, count = 64) {
+  const seed = symbolSeed(symbol);
+  let price = 80 + (seed % 90);
+  const now = Date.now();
+  const candles = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const wave = Math.sin((index + seed) / 4) * 1.7;
+    const drift = Math.cos((index + seed) / 9) * 0.8;
+    const open = price;
+    const close = Math.max(1, open + wave + drift);
+    const high = Math.max(open, close) + 0.6 + ((index + seed) % 5) * 0.18;
+    const low = Math.max(0.01, Math.min(open, close) - 0.6 - ((index + seed) % 4) * 0.16);
+    price = close;
+    candles.push({
+      symbol,
+      timestamp: new Date(now - (count - index) * 60_000).toISOString(),
+      open,
+      high,
+      low,
+      close,
+      volume: 900 + ((index + seed) % 24) * 85,
+    });
+  }
+
+  return candles;
+}
+
+async function loadCandles(symbol) {
+  const normalizedSymbol = symbol.toUpperCase();
+  try {
+    const candles = await request(`/candles/${normalizedSymbol}`);
+    if (candles.length) {
+      localCandleCache.set(normalizedSymbol, candles);
+      return candles;
+    }
+  } catch (error) {
+    setConnection("warning", "Demo chart");
+  }
+
+  if (!localCandleCache.has(normalizedSymbol)) {
+    localCandleCache.set(normalizedSymbol, generateDemoCandles(normalizedSymbol));
+  }
+  return localCandleCache.get(normalizedSymbol);
+}
+
 async function renderWatchlist() {
   const rows = await Promise.all(
     watchlistSymbols.map(async (symbol) => {
-      const candles = await request(`/candles/${symbol}`);
+      const candles = await loadCandles(symbol);
       const lastClose = candles.length ? Number(candles.at(-1).close) : 0;
       const change = changePercent(candles);
       return { symbol, candles, lastClose, change };
@@ -410,7 +461,7 @@ function drawPriceChart(candles, symbol) {
 
 async function loadChart(symbol = activeChartSymbol) {
   activeChartSymbol = symbol.toUpperCase();
-  const candles = await request(`/candles/${activeChartSymbol}`);
+  const candles = await loadCandles(activeChartSymbol);
   drawPriceChart(candles, activeChartSymbol);
 }
 
@@ -462,47 +513,51 @@ function renderMetricSparklines(portfolio, status) {
 }
 
 async function addDemoCandles(symbol) {
-  let price = 100 + Math.random() * 8;
-  for (let index = 0; index < 24; index += 1) {
-    const move = Math.sin(index / 2.2) * 1.4 + (Math.random() - 0.45) * 1.8;
-    const open = price;
-    const close = Math.max(1, open + move);
-    const high = Math.max(open, close) + Math.random() * 1.2;
-    const low = Math.max(0.01, Math.min(open, close) - Math.random() * 1.2);
-    price = close;
-    await request("/candles", {
-      method: "POST",
-      body: JSON.stringify({
-        symbol,
-        open,
-        high,
-        low,
-        close,
-        volume: 1000 + index * 25,
-      }),
-    });
+  const normalizedSymbol = symbol.toUpperCase();
+  const candles = generateDemoCandles(normalizedSymbol);
+  localCandleCache.set(normalizedSymbol, candles);
+
+  for (const candle of candles.slice(-24)) {
+    try {
+      await request("/candles", {
+        method: "POST",
+        body: JSON.stringify(candle),
+      });
+    } catch (error) {
+      setConnection("warning", "Demo chart");
+      break;
+    }
   }
 }
 
 async function addLiveTick(symbol) {
-  const candles = await request(`/candles/${symbol}`);
+  const candles = await loadCandles(symbol);
   const previous = candles.length ? Number(candles.at(-1).close) : 100 + Math.random() * 12;
   const move = (Math.random() - 0.48) * 2.1;
   const open = previous;
   const close = Math.max(1, previous + move);
   const high = Math.max(open, close) + Math.random() * 0.75;
   const low = Math.max(0.01, Math.min(open, close) - Math.random() * 0.75);
-  await request("/candles", {
-    method: "POST",
-    body: JSON.stringify({
-      symbol,
-      open,
-      high,
-      low,
-      close,
-      volume: 1200 + Math.round(Math.random() * 1800),
-    }),
-  });
+  const candle = {
+    symbol: symbol.toUpperCase(),
+    timestamp: new Date().toISOString(),
+    open,
+    high,
+    low,
+    close,
+    volume: 1200 + Math.round(Math.random() * 1800),
+  };
+  const updatedCandles = [...candles, candle].slice(-120);
+  localCandleCache.set(candle.symbol, updatedCandles);
+
+  try {
+    await request("/candles", {
+      method: "POST",
+      body: JSON.stringify(candle),
+    });
+  } catch (error) {
+    setConnection("warning", "Demo chart");
+  }
 }
 
 async function refreshDashboard() {
@@ -806,12 +861,14 @@ window.addEventListener("resize", () => {
   drawSparkline(fields.plSparkline, metricHistory.pl, "#5eead4");
 });
 
-refreshDashboard().catch((error) => {
+refreshDashboard().catch(async (error) => {
   setConnection("error", "Offline");
   showActivity("Backend unavailable", {
     error: error.message,
     hint: "Start the API with: python -m uvicorn trading_bot.app:app --reload",
   });
+  await loadChart(activeChartSymbol);
+  await renderWatchlist();
 });
 startLiveRefresh();
 startLiveMarket();
