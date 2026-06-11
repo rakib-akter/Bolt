@@ -11,6 +11,7 @@ from trading_bot.broker.paper_broker import PaperBroker
 from trading_bot.config import load_settings
 from trading_bot.data.market_data import Candle, MarketDataStore
 from trading_bot.database.db import TradeRepository
+from trading_bot.execution.autopilot import PaperAutopilot
 from trading_bot.execution.paper_trading import PaperTradingEngine
 from trading_bot.portfolio.portfolio_manager import PortfolioManager
 from trading_bot.risk.risk_manager import RiskManager
@@ -44,6 +45,13 @@ risk_manager = RiskManager(
     max_position_value=settings.max_position_value,
 )
 paper_trading_engine = PaperTradingEngine(broker, risk_manager)
+autopilot = PaperAutopilot(
+    broker=broker,
+    market_data=market_data,
+    strategy=strategy,
+    trading_engine=paper_trading_engine,
+    sell_decision_engine=sell_decision_engine,
+)
 portfolio_manager = PortfolioManager(broker)
 trade_repository = TradeRepository(settings.database_path)
 
@@ -77,6 +85,10 @@ class RunRequest(BaseModel):
     requested_quantity: float | None = None
 
 
+class AutopilotRequest(BaseModel):
+    symbols: list[str] | None = None
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment}
@@ -89,6 +101,7 @@ def status() -> dict[str, object]:
         "broker": settings.broker_name,
         "cash": broker.get_balance(),
         "position_count": len(broker.get_positions()),
+        "autopilot_enabled": autopilot.state.enabled,
     }
 
 
@@ -150,6 +163,29 @@ def sell_decisions() -> list[dict[str, object]]:
         decision = sell_decision_engine.evaluate(position, current_price, signal)
         decisions.append(asdict(decision))
     return decisions
+
+
+@app.get("/autopilot")
+def autopilot_status() -> dict[str, object]:
+    return asdict(autopilot.state)
+
+
+@app.post("/autopilot/start")
+def start_autopilot(request: AutopilotRequest) -> dict[str, object]:
+    return asdict(autopilot.start(request.symbols))
+
+
+@app.post("/autopilot/stop")
+def stop_autopilot() -> dict[str, object]:
+    return asdict(autopilot.stop())
+
+
+@app.post("/autopilot/tick")
+def autopilot_tick() -> dict[str, object]:
+    state = autopilot.run_once()
+    for order in state.orders:
+        trade_repository.save_order_result(order)
+    return asdict(state)
 
 
 @app.post("/run-once")
