@@ -1,5 +1,6 @@
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+import math
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -108,6 +109,41 @@ class BacktestRequest(BaseModel):
 
 class StrategySelectionRequest(BaseModel):
     strategy_id: str
+
+
+class PaperSetupRequest(BaseModel):
+    symbols: list[str] | None = None
+    starting_cash: float = settings.default_cash
+    candles_per_symbol: int = 80
+    reset_trades: bool = True
+
+
+def create_demo_candles(symbol: str, count: int) -> list[Candle]:
+    seed = sum(ord(letter) for letter in symbol.upper())
+    price = 80 + seed % 90
+    start = datetime.now(UTC) - timedelta(minutes=count)
+    generated: list[Candle] = []
+
+    for index in range(count):
+        move = math.sin((index + seed) / 4) * 1.4 + math.cos((index + seed) / 9) * 0.7
+        open_price = price
+        close_price = max(1, open_price + move)
+        high = max(open_price, close_price) + 0.6 + (index % 5) * 0.14
+        low = max(0.01, min(open_price, close_price) - 0.6 - (index % 4) * 0.12)
+        price = close_price
+        generated.append(
+            Candle(
+                symbol=symbol.upper(),
+                timestamp=start + timedelta(minutes=index),
+                open=open_price,
+                high=high,
+                low=low,
+                close=close_price,
+                volume=1000 + (index % 25) * 75,
+            )
+        )
+
+    return generated
 
 
 def backtest_strategy_on_candles(strategy_id: str, symbol: str) -> dict[str, object] | None:
@@ -249,6 +285,44 @@ def strategies() -> list[dict[str, object]]:
             }
         )
     return catalog
+
+
+@app.post("/paper/setup")
+def setup_paper_trading(request: PaperSetupRequest) -> dict[str, object]:
+    if not isinstance(broker, PaperBroker):
+        raise HTTPException(
+            status_code=400,
+            detail="Paper setup is only available when BROKER_NAME=paper.",
+        )
+    if request.starting_cash <= 0:
+        raise HTTPException(status_code=400, detail="Starting cash must be greater than zero.")
+    if request.candles_per_symbol < 30:
+        raise HTTPException(status_code=400, detail="Use at least 30 candles per symbol.")
+
+    symbols = [symbol.upper() for symbol in (request.symbols or autopilot.state.symbols)]
+    broker.reset(request.starting_cash)
+    market_data.clear()
+    autopilot.stop()
+    if request.reset_trades:
+        trade_repository.clear()
+
+    for symbol in symbols:
+        symbol_candles = create_demo_candles(symbol, request.candles_per_symbol)
+        for candle in symbol_candles:
+            market_data.add_candle(candle)
+        broker.set_price(symbol, symbol_candles[-1].close)
+
+    autopilot.start(symbols)
+    autopilot.state.last_action = "Paper trading workspace is ready with fake money."
+    return {
+        "mode": "paper",
+        "broker": "paper",
+        "cash": broker.get_balance(),
+        "symbols": symbols,
+        "candles_per_symbol": request.candles_per_symbol,
+        "autopilot": asdict(autopilot.state),
+        "message": "Paper trading workspace is ready. No real orders will be placed.",
+    }
 
 
 @app.post("/strategies/select")

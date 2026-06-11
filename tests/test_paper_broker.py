@@ -19,3 +19,12 @@ def test_paper_broker_rejects_sell_without_position() -> None:
     assert result.status == "rejected"
     assert "Insufficient" in result.message
 
+
+def test_paper_broker_reset_restores_cash_and_clears_positions() -> None:
+    broker = PaperBroker(cash=1000, prices={"AAPL": 100})
+    broker.place_order("AAPL", "buy", 2)
+
+    broker.reset()
+
+    assert broker.get_balance() == 1000
+    assert broker.get_positions() == []

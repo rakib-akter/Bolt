@@ -42,7 +42,9 @@ class MarketDataStore:
     def candles_for(self, symbol: str) -> list[Candle]:
         return list(self._candles.get(symbol.upper(), []))
 
+    def clear(self) -> None:
+        self._candles.clear()
+
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
-

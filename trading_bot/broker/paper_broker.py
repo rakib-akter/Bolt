@@ -3,9 +3,14 @@ from trading_bot.broker.base_broker import BaseBroker, OrderResult, OrderSide, P
 
 class PaperBroker(BaseBroker):
     def __init__(self, cash: float, prices: dict[str, float] | None = None) -> None:
+        self.starting_cash = cash
         self.cash = cash
         self.prices = prices or {}
         self.positions: dict[str, Position] = {}
+
+    def reset(self, cash: float | None = None) -> None:
+        self.cash = cash if cash is not None else self.starting_cash
+        self.positions.clear()
 
     def set_price(self, symbol: str, price: float) -> None:
         if price <= 0:
@@ -84,4 +89,3 @@ class PaperBroker(BaseBroker):
         self.positions[symbol] = Position(
             symbol, remaining_quantity, existing.average_price
         )
-

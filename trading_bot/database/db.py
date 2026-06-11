@@ -83,3 +83,6 @@ class TradeRepository:
             for row in rows
         ]
 
+    def clear(self) -> None:
+        with sqlite3.connect(self.database_path) as connection:
+            connection.execute("DELETE FROM trades")
