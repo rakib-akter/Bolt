@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from trading_bot.broker.base_broker import BaseBroker, OrderResult
 from trading_bot.data.market_data import MarketDataStore
 from trading_bot.execution.paper_trading import PaperTradingEngine
-from trading_bot.strategy.moving_average_strategy import MovingAverageStrategy
+from trading_bot.strategy.base_strategy import BaseStrategy
 from trading_bot.strategy.sell_decision import SellDecisionEngine
 
 
@@ -13,6 +13,7 @@ class AutopilotState:
     enabled: bool = False
     mode: str = "paper"
     symbols: list[str] = field(default_factory=lambda: ["AAPL", "MSFT", "NVDA", "TSLA", "SPY"])
+    strategy_id: str = "moving_average"
     auto_sell_enabled: bool = True
     stop_loss_percent: float = 0.05
     take_profit_percent: float = 0.10
@@ -26,7 +27,7 @@ class PaperAutopilot:
         self,
         broker: BaseBroker,
         market_data: MarketDataStore,
-        strategy: MovingAverageStrategy,
+        strategy: BaseStrategy,
         trading_engine: PaperTradingEngine,
         sell_decision_engine: SellDecisionEngine,
     ) -> None:
@@ -59,6 +60,16 @@ class PaperAutopilot:
             take_profit_percent=self.state.take_profit_percent,
         )
         self.state.last_action = "Auto-sell rules updated."
+        return self.state
+
+    def configure_strategy(
+        self,
+        strategy_id: str,
+        strategy: BaseStrategy,
+    ) -> AutopilotState:
+        self.strategy = strategy
+        self.state.strategy_id = strategy_id
+        self.state.last_action = f"Strategy changed to {strategy_id}."
         return self.state
 
     def start(self, symbols: list[str] | None = None) -> AutopilotState:

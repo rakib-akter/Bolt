@@ -17,6 +17,7 @@ from trading_bot.execution.paper_trading import PaperTradingEngine
 from trading_bot.portfolio.portfolio_manager import PortfolioManager
 from trading_bot.risk.risk_manager import RiskManager
 from trading_bot.strategy.moving_average_strategy import MovingAverageStrategy
+from trading_bot.strategy.registry import STRATEGIES, create_strategy
 from trading_bot.strategy.sell_decision import SellDecisionEngine
 from trading_bot.utils.logger import get_logger
 
@@ -102,6 +103,34 @@ class BacktestRequest(BaseModel):
     quantity: float = 1.0
     short_window: int = 5
     long_window: int = 20
+    strategy_id: str = "moving_average"
+
+
+class StrategySelectionRequest(BaseModel):
+    strategy_id: str
+
+
+def backtest_strategy_on_candles(strategy_id: str, symbol: str) -> dict[str, object] | None:
+    candles_for_symbol = market_data.candles_for(symbol)
+    if not candles_for_symbol:
+        return None
+
+    engine = BacktestEngine(
+        strategy=create_strategy(strategy_id),
+        starting_cash=10000,
+    )
+    result = engine.run(candles_for_symbol, quantity=1)
+    return {
+        "symbol": symbol.upper(),
+        "pnl_percent": result.pnl_percent,
+        "win_rate": result.win_rate,
+        "trade_count": result.trade_count,
+        "is_profitable": result.is_profitable,
+    }
+
+
+def current_strategy():
+    return autopilot.strategy
 
 
 @app.get("/health")
@@ -117,6 +146,7 @@ def status() -> dict[str, object]:
         "cash": broker.get_balance(),
         "position_count": len(broker.get_positions()),
         "autopilot_enabled": autopilot.state.enabled,
+        "strategy_id": autopilot.state.strategy_id,
     }
 
 
@@ -173,7 +203,7 @@ def sell_decisions() -> list[dict[str, object]]:
     for position in broker.get_positions():
         symbol = position.symbol
         candles_for_symbol = market_data.candles_for(symbol)
-        signal = strategy.generate_signal(candles_for_symbol)
+        signal = current_strategy().generate_signal(candles_for_symbol)
         current_price = broker.get_price(symbol)
         decision = sell_decision_engine.evaluate(position, current_price, signal)
         decisions.append(asdict(decision))
@@ -183,6 +213,51 @@ def sell_decisions() -> list[dict[str, object]]:
 @app.get("/autopilot")
 def autopilot_status() -> dict[str, object]:
     return asdict(autopilot.state)
+
+
+@app.get("/strategies")
+def strategies() -> list[dict[str, object]]:
+    catalog = []
+    for definition in STRATEGIES.values():
+        backtests = [
+            result
+            for symbol in autopilot.state.symbols
+            if (result := backtest_strategy_on_candles(definition.id, symbol)) is not None
+        ]
+        tested = len(backtests)
+        average_win_rate = (
+            sum(float(result["win_rate"]) for result in backtests) / tested
+            if tested
+            else None
+        )
+        average_pnl_percent = (
+            sum(float(result["pnl_percent"]) for result in backtests) / tested
+            if tested
+            else None
+        )
+        catalog.append(
+            {
+                "id": definition.id,
+                "name": definition.name,
+                "description": definition.description,
+                "pros": definition.pros,
+                "cons": definition.cons,
+                "selected": definition.id == autopilot.state.strategy_id,
+                "tested_symbols": tested,
+                "success_rate": average_win_rate,
+                "average_pnl_percent": average_pnl_percent,
+            }
+        )
+    return catalog
+
+
+@app.post("/strategies/select")
+def select_strategy(request: StrategySelectionRequest) -> dict[str, object]:
+    try:
+        selected = create_strategy(request.strategy_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return asdict(autopilot.configure_strategy(request.strategy_id, selected))
 
 
 @app.post("/backtest")
@@ -200,10 +275,13 @@ def backtest(request: BacktestRequest) -> dict[str, object]:
         )
 
     try:
-        backtest_strategy = MovingAverageStrategy(
-            short_window=request.short_window,
-            long_window=request.long_window,
-        )
+        if request.strategy_id == "moving_average":
+            backtest_strategy = MovingAverageStrategy(
+                short_window=request.short_window,
+                long_window=request.long_window,
+            )
+        else:
+            backtest_strategy = create_strategy(request.strategy_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -249,7 +327,7 @@ def autopilot_tick() -> dict[str, object]:
 def run_once(request: RunRequest) -> dict[str, object]:
     symbol = request.symbol.upper()
     candles = market_data.candles_for(symbol)
-    signal = strategy.generate_signal(candles)
+    signal = current_strategy().generate_signal(candles)
     try:
         result = paper_trading_engine.execute(
             symbol=symbol,
